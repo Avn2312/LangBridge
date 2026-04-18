@@ -28,18 +28,19 @@ const CallPage = () => {
   const [isConnecting, setIsConnecting] = useState(true);
 
   const { authUser, isLoading } = useAuthUser();
+  const isVerified = Boolean(authUser?.verified);
 
   const { data: tokenData } = useQuery({
     queryKey: ["streamToken"],
     queryFn: getStreamToken,
-    enabled: !!authUser,
+    enabled: !!authUser && isVerified,
   });
 
   useEffect(() => {
     let mounted = true;
 
     const initCall = async () => {
-      if (!tokenData.token || !authUser || !callId) return;
+      if (!tokenData?.token || !authUser || !callId || !isVerified) return;
 
       try {
         console.log("Initializing Stream video client...");
@@ -83,9 +84,22 @@ const CallPage = () => {
         client.disconnect(); // or appropriate SDK disconnect
       }
     };
-  }, [tokenData, authUser, callId]);
+  }, [tokenData, authUser, callId, isVerified]);
 
   if (isLoading || isConnecting) return <PageLoader />;
+
+  if (!isVerified) {
+    return (
+      <div className="h-screen flex items-center justify-center px-4">
+        <div className="max-w-md rounded-2xl border border-amber-300/60 bg-amber-50 p-6 text-center text-amber-900">
+          <h2 className="text-xl font-semibold">Email verification required</h2>
+          <p className="mt-2 text-sm">
+            Verify your email from the banner above to unlock calls.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen flex flex-col items-center justify-center">
@@ -113,10 +127,10 @@ const CallContent = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-  if (callingState === CallingState.LEFT) {
-    navigate("/");
-  }
-}, [callingState, navigate]);
+    if (callingState === CallingState.LEFT) {
+      navigate("/");
+    }
+  }, [callingState, navigate]);
 
   return (
     <StreamTheme>

@@ -1,29 +1,60 @@
 import express from "express";
-import { protectRoute } from "../middlewares/auth.middleware.js";
+import {
+  protectRoute,
+  requireVerifiedUser,
+} from "../middlewares/auth.middleware.js";
 import {
   getRecommendations,
   getMyFriends,
-  sendFriendRequest,
-  acceptFriendRequest,
-  getFriendRequests,
-  getOutgoingFriendReqs
+  followRequestController,
+  unfollowRequestController,
+  acceptRequestController,
+  rejectRequestController,
+  receivedFollowReqsController,
+  sentFollowReqsController,
 } from "../controllers/user.controller.js";
+import { userIdParamValidation } from "../validation/user.validator.js";
 
 const router = express.Router();
 
-//  below line applies auth middlewares to all the routes
-router.use(protectRoute);   // protectRoute middleware return us req.user = user that is all the details of the valid user
+// Apply auth middleware to ALL routes in this file
+// WHY: Every user-related action requires authentication.
+//      Instead of adding protectRoute to each route individually,
+//      router.use() applies it to all routes below.
+router.use(protectRoute);
 
 router.get("/", getRecommendations);
 router.get("/friends", getMyFriends);
 
-router.post("/friend-request/:id", sendFriendRequest);
-router.put("/friend-request/:id/accept", acceptFriendRequest);
-
-// u can add this feature make on your own
-// router.put("/friend-request/:id/remove", removeFriendRequest);
-
-router.get("/friend-requests", getFriendRequests);
-router.get("/outgoing-friend-requests", getOutgoingFriendReqs);
+router.post(
+  "/follow/:id",
+  requireVerifiedUser,
+  userIdParamValidation,
+  followRequestController,
+);
+router.delete(
+  "/unfollow/:id",
+  requireVerifiedUser,
+  userIdParamValidation,
+  unfollowRequestController,
+);
+router.patch(
+  "/follow/accept/:id",
+  requireVerifiedUser,
+  userIdParamValidation,
+  acceptRequestController,
+);
+router.patch(
+  "/follow/reject/:id",
+  requireVerifiedUser,
+  userIdParamValidation,
+  rejectRequestController,
+);
+router.get(
+  "/received/requests",
+  requireVerifiedUser,
+  receivedFollowReqsController,
+);
+router.get("/sent/requests", requireVerifiedUser, sentFollowReqsController);
 
 export default router;

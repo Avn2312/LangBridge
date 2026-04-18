@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Globe, MessageCircle } from "lucide-react";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { motion } from "framer-motion";
+import toast from "react-hot-toast";
 import useLogin from "../hooks/useLogin.js";
 
 const LoginPage = () => {
@@ -9,6 +10,14 @@ const LoginPage = () => {
     email: "",
     password: "",
   });
+
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams.get("verified") === "true") {
+      toast.success("Email verified! You can now log in.");
+    }
+  }, [searchParams]);
 
   const { isPending, error, loginMutation } = useLogin();
 

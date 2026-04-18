@@ -17,12 +17,12 @@ import Layout from "./components/Layout.jsx";
 import { useThemeStore } from "./store/useThemeStore.js";
 
 const App = () => {
-
   const { isLoading, authUser } = useAuthUser();
   const { theme } = useThemeStore();
 
   const isAuthenticated = Boolean(authUser);
   const isOnboarded = authUser?.isOnboarded;
+  const isVerified = authUser?.verified;
 
   if (isLoading) return <PageLoader />;
 
@@ -76,22 +76,38 @@ const App = () => {
         <Route
           path="/call/:id"
           element={
-            isAuthenticated && isOnboarded ? (
+            isAuthenticated && isOnboarded && isVerified ? (
               <CallPage />
             ) : (
-              <Navigate to={!isAuthenticated ? "/login" : "/onboarding"} />
+              <Navigate
+                to={
+                  !isAuthenticated
+                    ? "/login"
+                    : isOnboarded
+                      ? "/"
+                      : "/onboarding"
+                }
+              />
             )
           }
         />
         <Route
           path="/chat/:id"
           element={
-            isAuthenticated && isOnboarded ? (
+            isAuthenticated && isOnboarded && isVerified ? (
               <Layout showSidebar={false}>
                 <ChatPage />
               </Layout>
             ) : (
-              <Navigate to={!isAuthenticated ? "/login" : "/onboarding"} />
+              <Navigate
+                to={
+                  !isAuthenticated
+                    ? "/login"
+                    : isOnboarded
+                      ? "/"
+                      : "/onboarding"
+                }
+              />
             )
           }
         />

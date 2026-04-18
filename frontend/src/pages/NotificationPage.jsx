@@ -8,13 +8,17 @@ import {
 } from "lucide-react";
 import NoNotificationsFound from "../components/NoNotificationsFound.jsx";
 import { motion } from "framer-motion";
+import useAuthUser from "../hooks/useAuthUser.js";
 
 const NotificationPage = () => {
   const queryClient = useQueryClient();
+  const { authUser } = useAuthUser();
+  const isVerified = Boolean(authUser?.verified);
 
   const { data: friendRequests, isLoading } = useQuery({
     queryKey: ["friendRequests"],
     queryFn: getFriendRequests,
+    enabled: isVerified,
   });
 
   const { mutate: acceptRequestMutation, isPending } = useMutation({
@@ -27,6 +31,24 @@ const NotificationPage = () => {
 
   const incomingRequests = friendRequests?.incomingReqs || [];
   const acceptedRequests = friendRequests?.acceptedReqs || [];
+
+  if (!isVerified) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-[#0d1b2a] via-[#1b263b] to-[#0d1b2a] text-[#e2e8f0] py-12 px-4 sm:px-8">
+        <div className="container mx-auto max-w-4xl">
+          <div className="rounded-2xl border border-amber-300/40 bg-amber-100/95 p-6 text-amber-900">
+            <h2 className="text-xl font-semibold">
+              Email verification required
+            </h2>
+            <p className="mt-2 text-sm">
+              Verify your email from the banner to view and manage friend
+              requests.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0d1b2a] via-[#1b263b] to-[#0d1b2a] text-[#e2e8f0] py-12 px-4 sm:px-8">

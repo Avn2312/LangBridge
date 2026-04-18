@@ -29,16 +29,17 @@ const ChatPage = () => {
   const [loading, setLoading] = useState(true);
 
   const { authUser } = useAuthUser();
+  const isVerified = Boolean(authUser?.verified);
 
   const { data: tokenData } = useQuery({
     queryKey: ["streamToken"],
     queryFn: getStreamToken,
-    enabled: !!authUser, // this will run only when authUser is available
+    enabled: !!authUser && isVerified, // only verified users can use chat
   });
 
   useEffect(() => {
     const initChat = async () => {
-      if (!tokenData?.token || !authUser) return;
+      if (!tokenData?.token || !authUser || !isVerified) return;
 
       try {
         console.log("Initializing stream chat client...");
@@ -51,7 +52,7 @@ const ChatPage = () => {
             name: authUser.fullName,
             image: authUser.profilePic,
           },
-          tokenData.token
+          tokenData.token,
         );
 
         //
@@ -78,9 +79,14 @@ const ChatPage = () => {
     };
 
     initChat();
-  }, [tokenData, authUser, targetUserId]);
+  }, [tokenData, authUser, targetUserId, isVerified]);
 
   const handleVideoCall = () => {
+    if (!isVerified) {
+      toast.error("Please verify your email to use calling.");
+      return;
+    }
+
     if (channel) {
       const callUrl = `${window.location.origin}/call/${channel.id}`;
 
@@ -91,6 +97,19 @@ const ChatPage = () => {
       toast.success("Video call link sent successfully!");
     }
   };
+
+  if (!isVerified) {
+    return (
+      <div className="h-[93vh] flex items-center justify-center px-4">
+        <div className="max-w-md rounded-2xl border border-amber-300/60 bg-amber-50 p-6 text-center text-amber-900">
+          <h2 className="text-xl font-semibold">Email verification required</h2>
+          <p className="mt-2 text-sm">
+            Verify your email from the banner above to unlock chat and calls.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (loading || !chatClient || !channel) return <ChatLoader />;
 

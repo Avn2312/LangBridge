@@ -18,10 +18,16 @@ import { capitialize } from "../lib/utils.js";
 import FriendCard, { getLanguageFlag } from "../components/FriendCard.jsx";
 import NoFriendsFound from "../components/NoFriendsFound.jsx";
 import NoRecommendedUser from "../components/NoRecommendedUser.jsx";
+import { useThemeStore } from "../store/useThemeStore.js";
+import useAuthUser from "../hooks/useAuthUser.js";
+import toast from "react-hot-toast";
 
 const HomePage = () => {
   const queryClient = useQueryClient();
+  const { theme } = useThemeStore();
+  const { authUser } = useAuthUser();
   const [outgoingRequestsIds, setOutgoingRequestsIds] = useState(new Set());
+  const isVerified = Boolean(authUser?.verified);
 
   const { data: friends = [], isLoading: loadingFriends } = useQuery({
     queryKey: ["friends"],
@@ -36,6 +42,7 @@ const HomePage = () => {
   const { data: outgoingFriendReqs } = useQuery({
     queryKey: ["outgoingFriendReqs"],
     queryFn: getOutgoingFriendReqs,
+    enabled: isVerified,
   });
 
   const { mutate: sendRequestMutation, isPending } = useMutation({
@@ -48,6 +55,11 @@ const HomePage = () => {
   });
 
   useEffect(() => {
+    if (!isVerified) {
+      setOutgoingRequestsIds(new Set());
+      return;
+    }
+
     const outgoingIds = new Set();
     if (outgoingFriendReqs && outgoingFriendReqs.length > 0) {
       outgoingFriendReqs.forEach((req) => {
@@ -55,10 +67,16 @@ const HomePage = () => {
       });
       setOutgoingRequestsIds(outgoingIds);
     }
-  }, [outgoingFriendReqs]);
+  }, [outgoingFriendReqs, isVerified]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0A1A2F] via-[#0F223D] to-[#08101D] text-white p-6 sm:p-10">
+    <div
+      className={`min-h-screen p-6 sm:p-10 transition-colors duration-300 ${
+        theme === "night"
+          ? "bg-gradient-to-b from-[#0A1A2F] via-[#0F223D] to-[#08101D] text-white"
+          : "bg-base-100 text-base-content"
+      }`}
+    >
       <div className="container mx-auto space-y-16">
         {/* ================= FRIENDS SECTION ================= */}
         <motion.div
@@ -194,17 +212,31 @@ const HomePage = () => {
                     <motion.button
                       whileTap={{ scale: 0.97 }}
                       className={`w-full py-2.5 rounded-xl font-medium flex items-center justify-center gap-2 transition-all duration-300 ${
-                        hasRequestBeenSent
+                        hasRequestBeenSent || !isVerified
                           ? "bg-gray-700 text-gray-400 cursor-not-allowed"
                           : "bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-lg"
                       }`}
-                      onClick={() => sendRequestMutation(user._id)}
-                      disabled={hasRequestBeenSent || isPending}
+                      onClick={() => {
+                        if (!isVerified) {
+                          toast.error(
+                            "Please verify your email to send friend requests.",
+                          );
+                          return;
+                        }
+
+                        sendRequestMutation(user._id);
+                      }}
+                      disabled={hasRequestBeenSent || isPending || !isVerified}
                     >
                       {hasRequestBeenSent ? (
                         <>
                           <CheckCircleIcon className="size-4" />
                           Request Sent
+                        </>
+                      ) : !isVerified ? (
+                        <>
+                          <UserPlusIcon className="size-4" />
+                          Verify Email Required
                         </>
                       ) : (
                         <>

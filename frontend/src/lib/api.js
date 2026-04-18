@@ -20,6 +20,10 @@ export const getAuthUser = async () => {
     const res = await axiosInstance.get("/auth/me");
     return res.data;
   } catch (error) {
+    if (error?.response?.status === 401) {
+      return null;
+    }
+
     console.log("Error in getAuthUser: ", error);
     return null;
   }
@@ -27,6 +31,11 @@ export const getAuthUser = async () => {
 
 export const completeOnboarding = async (userData) => {
   const response = await axiosInstance.post("/auth/onboarding", userData);
+  return response.data;
+};
+
+export const resendVerificationEmail = async () => {
+  const response = await axiosInstance.post("/auth/resend-verification");
   return response.data;
 };
 
@@ -40,27 +49,46 @@ export async function getRecommendedUsers() {
   return response.data;
 }
 
-export async function getOutgoingFriendReqs() {
-  const response = await axiosInstance.get("/users/outgoing-friend-requests");
+export async function sendFollowRequest(userId) {
+  const response = await axiosInstance.post(`/users/follow/${userId}`);
   return response.data;
 }
 
-export async function sendFriendRequest(userId) {
-  const response = await axiosInstance.post(`/users/friend-request/${userId}`);
+export async function unfollowUser(userId) {
+  const response = await axiosInstance.delete(`/users/unfollow/${userId}`);
   return response.data;
 }
 
-export async function getFriendRequests() {
-  const response = await axiosInstance.get("/users/friend-requests");
+export async function getSentFriendReqs() {
+  const response = await axiosInstance.get("/users/sent/requests");
+  return response.data;
+}
+
+export async function getReceivedFriendReqs() {
+  const response = await axiosInstance.get("/users/received/requests");
   return response.data;
 }
 
 export async function acceptFriendRequest(requestId) {
-  const response = await axiosInstance.put(`/users/friend-request/${requestId}/accept`);
+  const response = await axiosInstance.patch(
+    `/users/follow/accept/${requestId}`,
+  );
   return response.data;
 }
 
-export async function getStreamToken() {  
+export async function rejectFriendRequest(requestId) {
+  const response = await axiosInstance.patch(
+    `/users/follow/reject/${requestId}`,
+  );
+  return response.data;
+}
+
+export async function getStreamToken() {
   const response = await axiosInstance.get("/chat/token");
   return response.data;
 }
+
+// Backward-compatible aliases used across page components.
+export const sendFriendRequest = sendFollowRequest;
+export const getOutgoingFriendReqs = getSentFriendReqs;
+export const getFriendRequests = getReceivedFriendReqs;

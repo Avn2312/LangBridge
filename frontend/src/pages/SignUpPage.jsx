@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Globe, MessageCircle } from "lucide-react";
 import { Link } from "react-router";
-import { useQueryClient } from "@tanstack/react-query";
+// import { useQueryClient } from "@tanstack/react-query";
 import useSignUp from "../hooks/useSignUp.js";
 
 const SignUpPage = () => {
@@ -12,8 +12,8 @@ const SignUpPage = () => {
     password: "",
   });
 
-  const queryClient = useQueryClient();
-
+  // const queryClient = useQueryClient();
+  
   // this is how we made initial hook
   // const {
   //   mutate: signupMutation,
@@ -37,7 +37,7 @@ const SignUpPage = () => {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center p-4 sm:p-6 md:p-8 bg-gradient-to-br from-[#0b274f] via-[#0c325d] to-[#0a1c5c] text-white"
+      className="min-h-screen flex items-center justify-center p-4 sm:p-6 md:p-8 bg-gradient-to-br from-[#0a1f3c] via-[#0f2e52] to-[#153e6a] text-white"
       data-theme="night"
     >
       <motion.div

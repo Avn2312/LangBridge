@@ -1,5 +1,6 @@
 import User from "../models/User.js";
 import FriendRequest from "../models/FriendRequest.js";
+import { getIO } from "../lib/socket.js";
 
 export async function getRecommendations(req, res) {
   try {
@@ -77,6 +78,28 @@ export async function followRequestController(req, res) {
       recipient: recipientId,
     });
 
+    // ── Real-time notification ──────────────────────────────────────────────
+    // Emit to the recipient's personal room so their UI updates instantly
+    // without needing a page refresh.
+    // WHY try/catch? Socket.IO failure should never break the HTTP response.
+    try {
+      getIO().to(recipientId).emit("friendRequest", {
+        type: "received",
+        request: {
+          _id: friendRequest._id,
+          sender: {
+            _id: req.user._id,
+            fullName: req.user.fullName,
+            profilePic: req.user.profilePic,
+          },
+          status: "pending",
+          createdAt: friendRequest.createdAt,
+        },
+      });
+    } catch (socketErr) {
+      console.error("Socket emit failed (friendRequest):", socketErr.message);
+    }
+
     res.status(201).json(friendRequest);
   } catch (error) {
     console.log("Error in sendFriendRequest controller:", error.message);
@@ -152,6 +175,20 @@ export async function acceptRequestController(req, res) {
     await User.findByIdAndUpdate(friendRequest.recipient, {
       $addToSet: { friends: friendRequest.sender },
     });
+
+    // ── Real-time: notify the sender their request was accepted ───────────
+    try {
+      getIO().to(friendRequest.sender.toString()).emit("friendRequest", {
+        type: "accepted",
+        acceptedBy: {
+          _id: req.user._id,
+          fullName: req.user.fullName,
+          profilePic: req.user.profilePic,
+        },
+      });
+    } catch (socketErr) {
+      console.error("Socket emit failed (acceptFriend):", socketErr.message);
+    }
 
     res.status(200).json({ message: "Friend Request Accepted." });
   } catch (error) {

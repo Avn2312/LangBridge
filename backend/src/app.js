@@ -14,6 +14,7 @@ import "./lib/passport.js";
 // Import route handlers
 import authRoutes from "./routes/auth.route.js";
 import userRoutes from "./routes/user.route.js";
+import messageRoutes from "./routes/message.route.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -75,6 +76,7 @@ app.use(passport.session());
 // ──── API ROUTES ────
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/messages", messageRoutes);
 
 // ──── PRODUCTION STATIC FILES ────
 // In production, Express serves the React build files

@@ -1,68 +1,73 @@
 # LangBridge — Task Checklist
 
+> **Module System Decision:** Staying with **ES Modules** (`import`/`export`) throughout — not converting to CommonJS.
+
 ---
 
-## Phase 1: Fix Bugs & Convert Backend to CommonJS
-> Make the app actually start without crashing
+## Phase 1: Fix Bugs & Ensure ES Module Consistency
+> Make the app actually start without crashing — using ES modules everywhere
 
-- [ ] **1.1** Remove `"type": "module"` from `backend/package.json`
-- [ ] **1.2** Convert `backend/src/lib/db.js` to CommonJS
-- [ ] **1.3** Convert `backend/src/lib/redis.js` to CommonJS + fix variable collision
-- [ ] **1.4** Fix `backend/src/lib/passport.js` — fix `findONe` typo, fix callback URL, fix field names
-- [ ] **1.5** Convert `backend/src/models/User.js` to CommonJS + add `googleId`, `provider` fields + make `password` optional
-- [ ] **1.6** Convert `backend/src/models/FriendRequest.js` to CommonJS
-- [ ] **1.7** Convert `backend/src/middlewares/auth.middleware.js` to CommonJS
-- [ ] **1.8** Create `backend/src/lib/auth.utils.js` — shared JWT + cookie helper functions
-- [ ] **1.9** Convert `backend/src/controllers/auth.controller.js` to CommonJS + use shared auth utils + fix cookie inconsistency
-- [ ] **1.10** Convert `backend/src/controllers/user.controller.js` to CommonJS
-- [ ] **1.11** Delete `backend/src/controllers/chat.controller.js` (Stream-specific, being replaced)
-- [ ] **1.12** Convert `backend/src/routes/auth.route.js` to CommonJS + fix OAuth callback to use JWT
-- [ ] **1.13** Convert `backend/src/routes/user.route.js` to CommonJS
-- [ ] **1.14** Delete `backend/src/routes/chat.route.js` (Stream-specific)
-- [ ] **1.15** Delete `backend/src/lib/stream.js` (Stream-specific)
-- [ ] **1.16** Convert `backend/src/server.js` to CommonJS + remove Stream references
-- [ ] **1.17** Remove `stream-chat` from backend dependencies
-- [ ] **1.18** Test: `npm run dev` → server starts without errors
-- [ ] **1.19** Test: POST `/api/auth/signup` → returns user + sets JWT cookie
+- [x] **1.1** Keep `"type": "module"` in `backend/package.json` (ES modules confirmed)
+- [x] **1.2** `backend/src/lib/db.js` — uses ES module syntax ✅
+- [x] **1.3** `backend/src/lib/redis.js` — uses ES module syntax, variable collision fixed ✅
+- [x] **1.4** `backend/src/lib/passport.js` — `findONe` typo fixed, callback URL correct, field names corrected ✅
+- [x] **1.5** `backend/src/models/User.js` — ES modules + `googleId`, `provider` fields added + `password` made optional ✅
+- [x] **1.6** `backend/src/models/FriendRequest.js` — uses ES module syntax ✅
+- [x] **1.7** `backend/src/middlewares/auth.middleware.js` — uses ES module syntax + token blacklist via Redis ✅
+- [x] **1.8** `backend/src/lib/auth.utils.js` — created with `generateToken`, `generateVerificationToken`, `setAuthCookie`, `clearAuthCookie` ✅
+- [x] **1.9** `backend/src/controllers/auth.controller.js` — uses ES modules + shared auth utils + cookie consistency ✅
+- [x] **1.10** `backend/src/controllers/user.controller.js` — uses ES module syntax ✅
+- [x] **1.11** Deleted `backend/src/controllers/chat.controller.js` (Stream-specific) ✅
+- [x] **1.12** `backend/src/routes/auth.route.js` — ES modules + OAuth callback generates JWT cookie ✅
+- [x] **1.13** `backend/src/routes/user.route.js` — uses ES module syntax ✅
+- [x] **1.14** Deleted `backend/src/routes/chat.route.js` (Stream-specific) ✅
+- [x] **1.15** Deleted `backend/src/lib/stream.js` (Stream-specific) ✅
+- [x] **1.16** `backend/server.js` — ES modules, imports app.js cleanly, no Stream references ✅
+- [x] **1.17** `stream-chat` removed from `backend/package.json` ✅
+- [x] **1.18** `frontend/tailwind.config.js` — fixed mixed `require("daisyui")` → uses imported `daisyui` variable ✅
+- [x] **1.19** `frontend/vite.config.js` — removed dead Stream chunk splitter config ✅
+- [x] **1.20** Test: `npm run dev` → server starts without errors ✅ (Redis + MongoDB connected, port 3000)
+- [x] **1.21** Test: POST `/api/auth/signup` → returns 201 + user object + `jwt` httpOnly cookie set ✅
 
 ---
 
 ## Phase 2: Redis Setup & Configuration
 > Get Redis running and connected
 
-- [ ] **2.1** Install Redis locally (`brew install redis`)
-- [ ] **2.2** Start Redis service (`brew services start redis`)
-- [ ] **2.3** Verify Redis works (`redis-cli ping` → PONG)
-- [ ] **2.4** Install `connect-redis` for Express session store
-- [ ] **2.5** Install `@socket.io/redis-adapter` for Socket.IO scaling
-- [ ] **2.6** Update `backend/src/lib/redis.js` — create pub/sub client pair for adapter
-- [ ] **2.7** Configure Express sessions with Redis store in `server.js`
-- [ ] **2.8** Test: Server logs "Redis connected successfully"
-- [ ] **2.9** Test: Sessions persist after server restart
+- [x] **2.1** `ioredis` + `redis` packages installed in `backend/package.json` ✅
+- [x] **2.2** `connect-redis` installed ✅
+- [x] **2.3** `backend/src/lib/redis.js` — `redis` (ioredis) + `sessionRedisClient` (node-redis) created ✅
+- [x] **2.4** `backend/src/app.js` — Express sessions configured with `RedisStore` ✅
+- [x] **2.5** Using **cloud Redis** (RedisLabs) via `.env` — no local install needed ✅
+- [x] **2.6** Cloud Redis always running — no local service required ✅
+- [x] **2.7** `@socket.io/redis-adapter` installed ✅
+- [x] **2.8** `backend/src/lib/redis.js` — `pubClient` + `subClient` ioredis pair added ✅
+- [x] **2.9** Test: All 4 Redis connections logged on startup (main, pub, sub, session store) ✅
+- [x] **2.10** Test: JWT cookie persists across requests — `GET /api/auth/me` returns user from saved cookie ✅
 
 ---
 
 ## Phase 3: Socket.IO Server + Event Architecture
 > Build our own real-time communication layer
 
-- [ ] **3.1** Install `socket.io` on backend
-- [ ] **3.2** Create `backend/src/lib/socket.js` — Socket.IO server setup
-  - [ ] 3.2a: Initialize Socket.IO with CORS config
-  - [ ] 3.2b: Attach Redis adapter for horizontal scaling
-  - [ ] 3.2c: JWT authentication middleware for WebSocket connections
-  - [ ] 3.2d: Online users tracking (Redis Set)
-  - [ ] 3.2e: Event handlers: `sendMessage`, `typing`, `stopTyping`, `markAsRead`
-  - [ ] 3.2f: Presence broadcasting: `userOnline`, `userOffline`
-- [ ] **3.3** Create `backend/src/models/Message.js` — message schema
-- [ ] **3.4** Create `backend/src/controllers/message.controller.js`
-  - [ ] 3.4a: `getMessages()` — paginated message history for a conversation
-  - [ ] 3.4b: `getConversations()` — list all conversations with last message
-- [ ] **3.5** Create `backend/src/routes/message.route.js`
-- [ ] **3.6** Update `backend/src/server.js` — use `http.createServer`, attach Socket.IO
-- [ ] **3.7** Update `backend/src/controllers/user.controller.js` — emit real-time events on friend requests
-- [ ] **3.8** Test: Connect via Socket.IO client → "connection" event fires
-- [ ] **3.9** Test: Send message via socket → arrives on another socket in real-time
-- [ ] **3.10** Test: Online/offline presence updates broadcast correctly
+- [x] **3.1** `socket.io` installed in `backend/package.json` ✅
+- [x] **3.2** Created `backend/src/lib/socket.js` — Socket.IO server setup ✅
+  - [x] 3.2a: Initialized with CORS config (credentials, frontend origin) ✅
+  - [x] 3.2b: Redis adapter attached (`pubClient`/`subClient`) ✅
+  - [x] 3.2c: JWT cookie auth middleware for WebSocket connections ✅
+  - [x] 3.2d: Online users tracked in Redis Set (`langbridge:online_users`) ✅
+  - [x] 3.2e: Events: `sendMessage`, `typing`, `stopTyping`, `markAsRead` ✅
+  - [x] 3.2f: Presence broadcasting: `onlineUsers` on connect/disconnect ✅
+- [x] **3.3** Created `backend/src/models/Message.js` — message schema (sender, receiver, text, read, compound index) ✅
+- [x] **3.4** Created `backend/src/controllers/message.controller.js` ✅
+  - [x] 3.4a: `getMessages()` — paginated + marks as read on fetch ✅
+  - [x] 3.4b: `getConversations()` — MongoDB aggregation with unread counts ✅
+- [x] **3.5** Created `backend/src/routes/message.route.js` ✅
+- [x] **3.6** Updated `backend/server.js` — `http.createServer`, Socket.IO attached ✅
+- [x] **3.7** Updated `user.controller.js` — `friendRequest` + `accepted` events emitted in real-time ✅
+- [x] **3.8** Test: Socket.IO client connects — `connection` event fired ✅ (id: klifDkXveIVLz2GfAAAC)
+- [x] **3.9** Test: Message saved to MongoDB + delivered via socket to receiver room ✅ (saved `_id` confirmed)
+- [x] **3.10** Test: `onlineUsers` broadcast fires on connect ✅
 
 ---
 
@@ -70,7 +75,7 @@
 > Connect React to our Socket.IO server, build custom chat UI
 
 - [ ] **4.1** Install `socket.io-client` on frontend
-- [ ] **4.2** Remove Stream packages (`stream-chat`, `stream-chat-react`, `@stream-io/video-react-sdk`)
+- [ ] **4.2** Remove Stream packages (`stream-chat`, `stream-chat-react`, `@stream-io/video-react-sdk`) from `frontend/package.json`
 - [ ] **4.3** Create `frontend/src/store/socketStore.js` — Zustand store for real-time state
   - [ ] 4.3a: `onlineUsers` set
   - [ ] 4.3b: `messages` map (conversationId → messages[])
@@ -82,11 +87,11 @@
   - [ ] 4.4c: Event listeners that sync to Zustand store
 - [ ] **4.5** Create `frontend/src/components/MessageBubble.jsx`
 - [ ] **4.6** Create `frontend/src/components/ChatInput.jsx` — with typing indicator emission
-- [ ] **4.7** Rebuild `frontend/src/pages/ChatPage.jsx` — custom chat UI with our Socket.IO
+- [ ] **4.7** Rebuild `frontend/src/pages/ChatPage.jsx` — custom chat UI with Socket.IO
 - [ ] **4.8** Update `frontend/src/pages/HomePage.jsx` — online status dots on friend cards
 - [ ] **4.9** Update `frontend/src/pages/NotificationPage.jsx` — real-time friend request alerts
 - [ ] **4.10** Update/Remove `frontend/src/pages/CallPage.jsx` — remove Stream Video
-- [ ] **4.11** Update `frontend/src/main.jsx` — remove Stream CSS, add socket initialization
+- [ ] **4.11** Update `frontend/src/main.jsx` — remove Stream CSS imports, add socket initialization
 - [ ] **4.12** Remove `VITE_STREAM_API_KEY` from frontend `.env`
 - [ ] **4.13** Test: Login → socket connects → online status shows
 - [ ] **4.14** Test: Two browser tabs → full chat flow works
@@ -97,13 +102,13 @@
 ## Phase 5: OAuth Production-Ready
 > Make Google OAuth work end-to-end with JWT
 
-- [ ] **5.1** Verify passport.js findOne fix + field mapping works
-- [ ] **5.2** Update OAuth callback to generate JWT + set same cookie as email/password login
-- [ ] **5.3** Handle "onboarding needed" redirect for new OAuth users
+- [x] **5.1** `passport.js` — `findONe` typo fixed + field mapping correct ✅
+- [x] **5.2** OAuth callback generates JWT + sets same cookie as email/password login ✅
+- [x] **5.3** "Onboarding needed" redirect handled in OAuth callback (`isOnboarded` check) ✅
 - [ ] **5.4** Add "Sign in with Google" button on `LoginPage.jsx`
 - [ ] **5.5** Add "Sign in with Google" button on `SignUpPage.jsx`
 - [ ] **5.6** Test: Full OAuth flow → Google → callback → JWT cookie → home page
-- [ ] **5.7** Test: Existing email user → account linking works (google login connects to email account)
+- [ ] **5.7** Test: Existing email user → account linking works (Google login connects to email account)
 
 ---
 

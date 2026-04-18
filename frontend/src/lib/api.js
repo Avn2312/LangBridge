@@ -23,7 +23,6 @@ export const getAuthUser = async () => {
     if (error?.response?.status === 401) {
       return null;
     }
-
     console.log("Error in getAuthUser: ", error);
     return null;
   }
@@ -39,6 +38,7 @@ export const resendVerificationEmail = async () => {
   return response.data;
 };
 
+// ── Users ──────────────────────────────────────────────────────────────────────
 export async function getUserFriends() {
   const response = await axiosInstance.get("/users/friends");
   return response.data;
@@ -46,6 +46,11 @@ export async function getUserFriends() {
 
 export async function getRecommendedUsers() {
   const response = await axiosInstance.get("/users");
+  return response.data;
+}
+
+export async function getUserById(userId) {
+  const response = await axiosInstance.get(`/users/${userId}`);
   return response.data;
 }
 
@@ -83,12 +88,28 @@ export async function rejectFriendRequest(requestId) {
   return response.data;
 }
 
-export async function getStreamToken() {
-  const response = await axiosInstance.get("/chat/token");
+// ── Messages ───────────────────────────────────────────────────────────────────
+/**
+ * GET /api/messages/:userId — paginated history between me and userId
+ * Returns { success, messages, page, limit }
+ */
+export async function getMessages(userId, page = 1, limit = 50) {
+  const response = await axiosInstance.get(
+    `/messages/${userId}?page=${page}&limit=${limit}`,
+  );
   return response.data;
 }
 
-// Backward-compatible aliases used across page components.
+/**
+ * GET /api/messages/conversations — all conversation threads with unread counts
+ * Returns { success, conversations }
+ */
+export async function getConversations() {
+  const response = await axiosInstance.get("/messages/conversations");
+  return response.data;
+}
+
+// ── Backward-compatible aliases used across page components ───────────────────
 export const sendFriendRequest = sendFollowRequest;
 export const getOutgoingFriendReqs = getSentFriendReqs;
 export const getFriendRequests = getReceivedFriendReqs;

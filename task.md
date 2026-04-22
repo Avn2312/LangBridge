@@ -5,6 +5,7 @@
 ---
 
 ## Phase 1: Fix Bugs & Ensure ES Module Consistency
+
 > Make the app actually start without crashing — using ES modules everywhere
 
 - [x] **1.1** Keep `"type": "module"` in `backend/package.json` (ES modules confirmed)
@@ -32,6 +33,7 @@
 ---
 
 ## Phase 2: Redis Setup & Configuration
+
 > Get Redis running and connected
 
 - [x] **2.1** `ioredis` + `redis` packages installed in `backend/package.json` ✅
@@ -48,6 +50,7 @@
 ---
 
 ## Phase 3: Socket.IO Server + Event Architecture
+
 > Build our own real-time communication layer
 
 - [x] **3.1** `socket.io` installed in `backend/package.json` ✅
@@ -72,60 +75,70 @@
 ---
 
 ## Phase 4: Frontend WebSocket Integration
+
 > Connect React to our Socket.IO server, build custom chat UI
 
-- [ ] **4.1** Install `socket.io-client` on frontend
-- [ ] **4.2** Remove Stream packages (`stream-chat`, `stream-chat-react`, `@stream-io/video-react-sdk`) from `frontend/package.json`
-- [ ] **4.3** Create `frontend/src/store/socketStore.js` — Zustand store for real-time state
-  - [ ] 4.3a: `onlineUsers` set
-  - [ ] 4.3b: `messages` map (conversationId → messages[])
-  - [ ] 4.3c: `typingUsers` map
-  - [ ] 4.3d: `unreadCounts` map
-- [ ] **4.4** Create `frontend/src/hooks/useSocket.js` — Socket.IO connection hook
-  - [ ] 4.4a: Connect on auth, disconnect on logout
-  - [ ] 4.4b: Reconnection with exponential backoff
-  - [ ] 4.4c: Event listeners that sync to Zustand store
-- [ ] **4.5** Create `frontend/src/components/MessageBubble.jsx`
-- [ ] **4.6** Create `frontend/src/components/ChatInput.jsx` — with typing indicator emission
-- [ ] **4.7** Rebuild `frontend/src/pages/ChatPage.jsx` — custom chat UI with Socket.IO
-- [ ] **4.8** Update `frontend/src/pages/HomePage.jsx` — online status dots on friend cards
-- [ ] **4.9** Update `frontend/src/pages/NotificationPage.jsx` — real-time friend request alerts
-- [ ] **4.10** Update/Remove `frontend/src/pages/CallPage.jsx` — remove Stream Video
-- [ ] **4.11** Update `frontend/src/main.jsx` — remove Stream CSS imports, add socket initialization
-- [ ] **4.12** Remove `VITE_STREAM_API_KEY` from frontend `.env`
-- [ ] **4.13** Test: Login → socket connects → online status shows
-- [ ] **4.14** Test: Two browser tabs → full chat flow works
-- [ ] **4.15** Test: Friend request → notification appears in real-time (no refresh)
+- [x] **4.1** Install `socket.io-client` on frontend ✅
+- [x] **4.2** Remove Stream packages (`stream-chat`, `stream-chat-react`, `@stream-io/video-react-sdk`) from `frontend/package.json` ✅
+- [x] **4.3** Create `frontend/src/store/socketStore.js` — Zustand store for real-time state ✅
+  - [x] 4.3a: `onlineUsers` set ✅
+  - [x] 4.3b: `messages` map (conversationId → messages[]) ✅
+  - [x] 4.3c: `typingUsers` map ✅
+  - [x] 4.3d: `unreadCounts` map ✅
+- [x] **4.4** Create `frontend/src/hooks/useSocket.js` — Socket.IO connection hook ✅
+  - [x] 4.4a: Connect on auth, disconnect on logout ✅
+  - [x] 4.4b: Reconnection with exponential backoff ✅
+  - [x] 4.4c: Event listeners that sync to Zustand store ✅
+- [x] **4.5** Create `frontend/src/components/MessageBubble.jsx` ✅
+- [x] **4.6** Create `frontend/src/components/ChatInput.jsx` — with typing indicator emission ✅
+- [x] **4.7** Rebuild `frontend/src/pages/ChatPage.jsx` — custom chat UI with Socket.IO ✅
+- [x] **4.8** Update `frontend/src/pages/HomePage.jsx` — online status dots on friend cards ✅
+- [x] **4.9** Update `frontend/src/pages/NotificationPage.jsx` — real-time friend request alerts ✅
+- [x] **4.10** Update/Remove `frontend/src/pages/CallPage.jsx` — remove Stream Video ✅
+- [x] **4.11** Update `frontend/src/main.jsx` — remove Stream CSS imports, add socket initialization (in App.jsx) ✅
+- [x] **4.12** Remove `VITE_STREAM_API_KEY` from frontend `.env` — replaced with `VITE_BACKEND_URL` ✅
+- [x] **4.13** Test: Login → socket connects → online status shows ✅
+- [x] **4.14** Test: Two browser tabs → full chat flow works ✅
+- [x] **4.15** Test: Friend request → notification appears in real-time (no refresh) ✅
 
 ---
 
 ## Phase 5: OAuth Production-Ready
+
 > Make Google OAuth work end-to-end with JWT
 
 - [x] **5.1** `passport.js` — `findONe` typo fixed + field mapping correct ✅
 - [x] **5.2** OAuth callback generates JWT + sets same cookie as email/password login ✅
 - [x] **5.3** "Onboarding needed" redirect handled in OAuth callback (`isOnboarded` check) ✅
-- [ ] **5.4** Add "Sign in with Google" button on `LoginPage.jsx`
-- [ ] **5.5** Add "Sign in with Google" button on `SignUpPage.jsx`
-- [ ] **5.6** Test: Full OAuth flow → Google → callback → JWT cookie → home page
-- [ ] **5.7** Test: Existing email user → account linking works (Google login connects to email account)
+- [x] **5.4** "Sign in with Google" button on `LoginPage.jsx` ✅
+- [x] **5.5** "Sign in with Google" button on `SignUpPage.jsx` ✅
+- [x] **5.6** Google OAuth users automatically marked `verified: true` (Google already verified the email) ✅
+- [x] **5.7** Account linking: existing email users who sign in with Google get `verified=true` + `googleId` linked ✅
+- [x] **5.8** Hardcoded `localhost` URLs replaced with `FRONTEND_URL` env var in auth route ✅
+- [x] **5.9** `FRONTEND_URL` added to `backend/.env` ✅
+- [x] **5.10** `VITE_API_BASE_URL` added to `frontend/.env` ✅
+- [x] **5.11** OAuth failure shows toast: `/login?error=oauth_failed` handled in LoginPage ✅
+- [ ] **5.12** Test: Full OAuth flow → Google → callback → JWT cookie → home page
+- [ ] **5.13** Test: Existing email user → account linking works (Google login connects to email account)
 
 ---
 
 ## Phase 6: Logging & Observability
+
 > Replace console.log with structured, debuggable logging
 
-- [ ] **6.1** Create `backend/src/lib/logger.js` — structured logger with levels
-- [ ] **6.2** Create `backend/src/middlewares/errorHandler.js` — global error handler
-- [ ] **6.3** Replace all `console.log` / `console.error` across backend with logger
-- [ ] **6.4** Add request logging middleware (method, path, status, duration)
-- [ ] **6.5** Add Socket.IO event logging (connection, disconnect, message, errors)
-- [ ] **6.6** Add Redis event logging (connect, disconnect, pub/sub events)
-- [ ] **6.7** Test: All logs show with `{ timestamp, level, message, context }` format
+- [x] **6.1** Create `backend/src/lib/logger.js` — structured logger with levels
+- [x] **6.2** Create `backend/src/middlewares/errorHandler.js` — global error handler
+- [x] **6.3** Replace all `console.log` / `console.error` across backend with logger
+- [x] **6.4** Add request logging middleware (method, path, status, duration)
+- [x] **6.5** Add Socket.IO event logging (connection, disconnect, message, errors)
+- [x] **6.6** Add Redis event logging (connect, disconnect, pub/sub events)
+- [x] **6.7** Test: All logs show with `{ timestamp, level, message, context }` format
 
 ---
 
 ## 🎓 Post-Implementation: Interview Prep
+
 > After all phases are done
 
 - [ ] Practice: "Explain your project end-to-end"

@@ -1,6 +1,8 @@
 import User from "../models/User.js";
 import FriendRequest from "../models/FriendRequest.js";
 import { getIO } from "../lib/socket.js";
+import { logger } from "../lib/logger.js";
+import { sendError } from "../lib/apiResponse.js";
 
 export async function getRecommendations(req, res) {
   try {
@@ -17,8 +19,10 @@ export async function getRecommendations(req, res) {
 
     res.status(200).json(recommendedUsers);
   } catch (error) {
-    console.log("Error in getRecommendations controller:", error.message);
-    res.status(500).json({ message: "Internal Server Error." });
+    logger.error("Error in getRecommendations controller", error);
+    return sendError(res, 500, "Internal Server Error.", {
+      code: "INTERNAL_SERVER_ERROR",
+    });
   }
 }
 
@@ -33,8 +37,10 @@ export async function getMyFriends(req, res) {
 
     res.status(200).json(user.friends);
   } catch (error) {
-    console.error("Error in getMyFriends controller:", error.message);
-    res.status(500).json({ message: "Internal Server Error." });
+    logger.error("Error in getMyFriends controller", error);
+    return sendError(res, 500, "Internal Server Error.", {
+      code: "INTERNAL_SERVER_ERROR",
+    });
   }
 }
 
@@ -45,20 +51,24 @@ export async function followRequestController(req, res) {
 
     // Prevent sending request to yourself
     if (myId === recipientId) {
-      return res
-        .status(400)
-        .json({ message: "Can't send friend request to self." });
+      return sendError(res, 400, "Can't send friend request to self.", {
+        code: "FRIEND_REQUEST_SELF",
+      });
     }
 
     // Check if recipient exists
     const recipient = await User.findById(recipientId);
     if (!recipient) {
-      return res.status(404).json({ message: "Recipient not found." });
+      return sendError(res, 404, "Recipient not found.", {
+        code: "RECIPIENT_NOT_FOUND",
+      });
     }
 
     // Check if already friends
     if (recipient.friends.some((friendId) => friendId.toString() === myId)) {
-      return res.status(400).json({ message: "Already friends." });
+      return sendError(res, 400, "Already friends.", {
+        code: "ALREADY_FRIENDS",
+      });
     }
 
     // Check if request already exists (either direction)
@@ -70,7 +80,9 @@ export async function followRequestController(req, res) {
     });
 
     if (existingRequest) {
-      return res.status(400).json({ message: "Friend request already sent." });
+      return sendError(res, 400, "Friend request already sent.", {
+        code: "FRIEND_REQUEST_EXISTS",
+      });
     }
 
     const friendRequest = await FriendRequest.create({
@@ -83,27 +95,31 @@ export async function followRequestController(req, res) {
     // without needing a page refresh.
     // WHY try/catch? Socket.IO failure should never break the HTTP response.
     try {
-      getIO().to(recipientId).emit("friendRequest", {
-        type: "received",
-        request: {
-          _id: friendRequest._id,
-          sender: {
-            _id: req.user._id,
-            fullName: req.user.fullName,
-            profilePic: req.user.profilePic,
+      getIO()
+        .to(recipientId)
+        .emit("friendRequest", {
+          type: "received",
+          request: {
+            _id: friendRequest._id,
+            sender: {
+              _id: req.user._id,
+              fullName: req.user.fullName,
+              profilePic: req.user.profilePic,
+            },
+            status: "pending",
+            createdAt: friendRequest.createdAt,
           },
-          status: "pending",
-          createdAt: friendRequest.createdAt,
-        },
-      });
+        });
     } catch (socketErr) {
-      console.error("Socket emit failed (friendRequest):", socketErr.message);
+      logger.error("Socket emit failed (friendRequest)", socketErr);
     }
 
     res.status(201).json(friendRequest);
   } catch (error) {
-    console.log("Error in sendFriendRequest controller:", error.message);
-    res.status(500).json({ message: "Internal Server Error." });
+    logger.error("Error in sendFriendRequest controller", error);
+    return sendError(res, 500, "Internal Server Error.", {
+      code: "INTERNAL_SERVER_ERROR",
+    });
   }
 }
 
@@ -115,12 +131,14 @@ export async function unfollowRequestController(req, res) {
     // Check if recipient exists
     const recipient = await User.findById(recipientId);
     if (!recipient) {
-      return res.status(404).json({ message: "Recipient not found." });
+      return sendError(res, 404, "Recipient not found.", {
+        code: "RECIPIENT_NOT_FOUND",
+      });
     }
 
     // Check if they are friends
     if (!recipient.friends.some((friendId) => friendId.toString() === myId)) {
-      return res.status(400).json({ message: "Not friends." });
+      return sendError(res, 400, "Not friends.", { code: "NOT_FRIENDS" });
     }
 
     // Remove from each other's friends array
@@ -137,8 +155,10 @@ export async function unfollowRequestController(req, res) {
 
     res.status(200).json({ message: "Unfollowed successfully." });
   } catch (error) {
-    console.log("Error in unfollowRequestController:", error.message);
-    res.status(500).json({ message: "Internal Server Error." });
+    logger.error("Error in unfollowRequestController", error);
+    return sendError(res, 500, "Internal Server Error.", {
+      code: "INTERNAL_SERVER_ERROR",
+    });
   }
 }
 
@@ -148,20 +168,32 @@ export async function acceptRequestController(req, res) {
 
     const friendRequest = await FriendRequest.findById(requestId);
     if (!friendRequest) {
-      return res.status(404).json({ message: "Friend request not found." });
+      return sendError(res, 404, "Friend request not found.", {
+        code: "FRIEND_REQUEST_NOT_FOUND",
+      });
     }
 
     // Verify the current user is the recipient
     if (friendRequest.recipient.toString() !== req.user.id) {
-      return res
-        .status(403)
-        .json({ message: "You are not authorized to accept this request." });
+      return sendError(
+        res,
+        403,
+        "You are not authorized to accept this request.",
+        {
+          code: "FRIEND_REQUEST_FORBIDDEN",
+        },
+      );
     }
 
     if (friendRequest.status !== "pending") {
-      return res
-        .status(400)
-        .json({ message: `Cannot accept a ${friendRequest.status} request.` });
+      return sendError(
+        res,
+        400,
+        `Cannot accept a ${friendRequest.status} request.`,
+        {
+          code: "FRIEND_REQUEST_NOT_PENDING",
+        },
+      );
     }
 
     friendRequest.status = "accepted";
@@ -178,22 +210,26 @@ export async function acceptRequestController(req, res) {
 
     // ── Real-time: notify the sender their request was accepted ───────────
     try {
-      getIO().to(friendRequest.sender.toString()).emit("friendRequest", {
-        type: "accepted",
-        acceptedBy: {
-          _id: req.user._id,
-          fullName: req.user.fullName,
-          profilePic: req.user.profilePic,
-        },
-      });
+      getIO()
+        .to(friendRequest.sender.toString())
+        .emit("friendRequest", {
+          type: "accepted",
+          acceptedBy: {
+            _id: req.user._id,
+            fullName: req.user.fullName,
+            profilePic: req.user.profilePic,
+          },
+        });
     } catch (socketErr) {
-      console.error("Socket emit failed (acceptFriend):", socketErr.message);
+      logger.error("Socket emit failed (acceptFriend)", socketErr);
     }
 
     res.status(200).json({ message: "Friend Request Accepted." });
   } catch (error) {
-    console.log("Error in acceptFriendRequest controller:", error.message);
-    res.status(500).json({ message: "Internal Server Error." });
+    logger.error("Error in acceptFriendRequest controller", error);
+    return sendError(res, 500, "Internal Server Error.", {
+      code: "INTERNAL_SERVER_ERROR",
+    });
   }
 }
 
@@ -203,19 +239,26 @@ export async function rejectRequestController(req, res) {
 
     const friendRequest = await FriendRequest.findById(requestId);
     if (!friendRequest) {
-      return res.status(404).json({ message: "Friend request not found." });
+      return sendError(res, 404, "Friend request not found.", {
+        code: "FRIEND_REQUEST_NOT_FOUND",
+      });
     }
 
     // Verify the current user is the recipient
     if (friendRequest.recipient.toString() !== req.user.id) {
-      return res
-        .status(403)
-        .json({ message: "You are not authorized to reject this request." });
+      return sendError(
+        res,
+        403,
+        "You are not authorized to reject this request.",
+        {
+          code: "FRIEND_REQUEST_FORBIDDEN",
+        },
+      );
     }
     if (friendRequest.status !== "pending") {
-      return res
-        .status(400)
-        .json({ message: "Friend request is already processed." });
+      return sendError(res, 400, "Friend request is already processed.", {
+        code: "FRIEND_REQUEST_ALREADY_PROCESSED",
+      });
     }
 
     friendRequest.status = "rejected";
@@ -223,8 +266,10 @@ export async function rejectRequestController(req, res) {
 
     res.status(200).json({ message: "Friend Request Rejected." });
   } catch (error) {
-    console.log("Error in rejectFriendRequest controller:", error.message);
-    res.status(500).json({ message: "Internal Server Error." });
+    logger.error("Error in rejectFriendRequest controller", error);
+    return sendError(res, 500, "Internal Server Error.", {
+      code: "INTERNAL_SERVER_ERROR",
+    });
   }
 }
 
@@ -245,8 +290,10 @@ export async function receivedFollowReqsController(req, res) {
 
     res.status(200).json({ incomingReqs, acceptedReqs });
   } catch (error) {
-    console.log("Error in getFriendRequests controller:", error.message);
-    res.status(500).json({ message: "Internal Server Error." });
+    logger.error("Error in getFriendRequests controller", error);
+    return sendError(res, 500, "Internal Server Error.", {
+      code: "INTERNAL_SERVER_ERROR",
+    });
   }
 }
 
@@ -262,7 +309,9 @@ export async function sentFollowReqsController(req, res) {
 
     res.status(200).json(outgoingRequests);
   } catch (error) {
-    console.log("Error in getOutgoingFriendReqs controller:", error.message);
-    res.status(500).json({ message: "Internal Server Error." });
+    logger.error("Error in getOutgoingFriendReqs controller", error);
+    return sendError(res, 500, "Internal Server Error.", {
+      code: "INTERNAL_SERVER_ERROR",
+    });
   }
 }

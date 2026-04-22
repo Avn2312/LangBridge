@@ -1,5 +1,7 @@
 import Message from "../models/Message.js";
 import User from "../models/User.js";
+import { logger } from "../lib/logger.js";
+import { sendError } from "../lib/apiResponse.js";
 
 // ─── GET /api/messages/:userId ─────────────────────────────────────────────────
 // Returns paginated message history between the logged-in user and :userId
@@ -21,16 +23,16 @@ export async function getMessages(req, res) {
         { sender: otherId, receiver: myId },
       ],
     })
-      .sort({ createdAt: -1 })   // newest first (frontend reverses for display)
+      .sort({ createdAt: -1 }) // newest first (frontend reverses for display)
       .skip(skip)
       .limit(limit)
-      .lean();                    // .lean() returns plain JS objects — 3x faster than Mongoose docs
+      .lean(); // .lean() returns plain JS objects — 3x faster than Mongoose docs
 
     // Mark unread messages as read (messages sent TO me by the other person)
     // Fire-and-forget — don't await so response is fast
     Message.updateMany(
       { sender: otherId, receiver: myId, read: false },
-      { $set: { read: true } }
+      { $set: { read: true } },
     ).exec();
 
     return res.status(200).json({
@@ -40,8 +42,10 @@ export async function getMessages(req, res) {
       limit,
     });
   } catch (error) {
-    console.error("Error in getMessages:", error.message);
-    return res.status(500).json({ message: "Internal Server Error." });
+    logger.error("Error in getMessages", error);
+    return sendError(res, 500, "Internal Server Error.", {
+      code: "INTERNAL_SERVER_ERROR",
+    });
   }
 }
 
@@ -85,7 +89,16 @@ export async function getConversations(req, res) {
           unreadCount: {
             // Count messages sent TO me that I haven't read
             $sum: {
-              $cond: [{ $and: [{ $eq: ["$receiver", myId] }, { $eq: ["$read", false] }] }, 1, 0],
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ["$receiver", myId] },
+                    { $eq: ["$read", false] },
+                  ],
+                },
+                1,
+                0,
+              ],
             },
           },
         },
@@ -128,7 +141,9 @@ export async function getConversations(req, res) {
 
     return res.status(200).json({ success: true, conversations });
   } catch (error) {
-    console.error("Error in getConversations:", error.message);
-    return res.status(500).json({ message: "Internal Server Error." });
+    logger.error("Error in getConversations", error);
+    return sendError(res, 500, "Internal Server Error.", {
+      code: "INTERNAL_SERVER_ERROR",
+    });
   }
 }

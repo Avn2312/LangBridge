@@ -41,6 +41,9 @@ passport.use(
                         email: profile.emails[0].value,
                         profilePic: profile.photos?.[0]?.value || randomAvatar,
                         provider: "google",
+                        // Google has already verified the email — mark as verified
+                        // so the user is not locked out of chat/notifications
+                        verified: true,
                         // NOTE: No password field — our updated User model makes password optional for OAuth users
                     });
                 } else {
@@ -51,6 +54,10 @@ passport.use(
                         // Also update profile pic from Google if they don't have one
                         if (!user.profilePic && profile.photos?.[0]?.value) {
                             user.profilePic = profile.photos[0].value;
+                        }
+                        // Google has verified this email — trust it
+                        if (!user.verified) {
+                            user.verified = true;
                         }
                         await user.save();
                     }

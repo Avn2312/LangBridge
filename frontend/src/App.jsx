@@ -5,6 +5,7 @@ import { Toaster } from "react-hot-toast";
 
 import PageLoader from "./components/PageLoader.jsx";
 import useAuthUser from "./hooks/useAuthUser.js";
+import useSocket from "./hooks/useSocket.js";
 import Layout from "./components/Layout.jsx";
 import { useThemeStore } from "./store/useThemeStore.js";
 
@@ -15,10 +16,14 @@ const NotificationPage = lazy(() => import("./pages/NotificationPage.jsx"));
 const CallPage = lazy(() => import("./pages/CallPage.jsx"));
 const ChatPage = lazy(() => import("./pages/ChatPage.jsx"));
 const OnboardingPage = lazy(() => import("./pages/OnboardingPage.jsx"));
+const FriendPage = lazy(() => import("./pages/FriendPage.jsx"));
 
 const App = () => {
   const { isLoading, authUser } = useAuthUser();
   const { theme } = useThemeStore();
+
+  // Initialize Socket.IO — connects when logged in, disconnects on logout
+  useSocket(authUser);
 
   const isAuthenticated = Boolean(authUser);
   const isOnboarded = authUser?.isOnboarded;
@@ -68,6 +73,18 @@ const App = () => {
               isAuthenticated && isOnboarded ? (
                 <Layout showSidebar={true}>
                   <NotificationPage />
+                </Layout>
+              ) : (
+                <Navigate to={!isAuthenticated ? "/login" : "/onboarding"} />
+              )
+            }
+          />
+          <Route
+            path="/friends"
+            element={
+              isAuthenticated && isOnboarded ? (
+                <Layout showSidebar={true}>
+                  <FriendPage />
                 </Layout>
               ) : (
                 <Navigate to={!isAuthenticated ? "/login" : "/onboarding"} />

@@ -2,7 +2,10 @@ import { Server } from "socket.io";
 import { createAdapter } from "@socket.io/redis-adapter";
 import jwt from "jsonwebtoken";
 import { pubClient, subClient, redis } from "./redis.js";
+import { logger } from "./logger.js";
 import Message from "../models/Message.js";
+import { runtimeConfig } from "./runtimeConfig.js";
+import { consumeRateLimit } from "./rateLimit.js";
 
 // ─── Module-level io reference ────────────────────────────────────────────────
 // Exported via getIO() so other modules (e.g. user.controller) can emit events
@@ -10,7 +13,8 @@ import Message from "../models/Message.js";
 let io;
 
 export const getIO = () => {
-  if (!io) throw new Error("Socket.IO not initialized — call initSocket first.");
+  if (!io)
+    throw new Error("Socket.IO not initialized — call initSocket first.");
   return io;
 };
 
@@ -33,10 +37,21 @@ const ONLINE_USERS_KEY = "langbridge:online_users"; // Redis Set of online userI
 //     (WebSocket starts as an HTTP request then upgrades).
 //     Express app doesn't expose the raw server; http.createServer does.
 export const initSocket = (httpServer) => {
+  const allowedOrigins = new Set([
+    ...runtimeConfig.corsOrigins,
+    runtimeConfig.frontendUrl,
+  ]);
+
   io = new Server(httpServer, {
     cors: {
-      origin: process.env.FRONTEND_URL || "http://localhost:5173",
-      credentials: true,         // allow cookies to be sent with WS handshake
+      origin: (origin, callback) => {
+        if (!origin || allowedOrigins.has(origin)) {
+          return callback(null, true);
+        }
+
+        return callback(new Error(`CORS blocked for origin: ${origin}`));
+      },
+      credentials: true, // allow cookies to be sent with WS handshake
       methods: ["GET", "POST"],
     },
     // INTERVIEW: "What transports do you support?"
@@ -81,7 +96,7 @@ export const initSocket = (httpServer) => {
   // ─── Connection Handler ────────────────────────────────────────────────────
   io.on("connection", async (socket) => {
     const userId = socket.userId;
-    console.log(`🔌 Socket connected: userId=${userId} socketId=${socket.id}`);
+    logger.info("Socket connected", { userId, socketId: socket.id });
 
     // Each user joins a personal room named after their userId.
     // WHY: When we want to send a message to a specific user, we emit to
@@ -103,6 +118,22 @@ export const initSocket = (httpServer) => {
     // Server: saves to DB → emits to receiver's room → echoes back to sender
     socket.on("sendMessage", async ({ receiverId, text }) => {
       try {
+        const rateLimit = await consumeRateLimit({
+          keyPrefix: "rate:socket:send-message",
+          identifier: `${userId}:${socket.id}`,
+          windowSeconds: runtimeConfig.rateLimit.messageWindowSeconds,
+          maxRequests: runtimeConfig.rateLimit.messageMaxRequests,
+        });
+
+        if (!rateLimit.allowed) {
+          socket.emit("error", {
+            message: "Too many messages. Please slow down.",
+            code: "MESSAGE_RATE_LIMITED",
+            retryAfterSeconds: rateLimit.retryAfterSeconds,
+          });
+          return;
+        }
+
         if (!receiverId || !text?.trim()) return;
 
         // Persist message to MongoDB
@@ -118,9 +149,17 @@ export const initSocket = (httpServer) => {
         // Echo back to sender (confirms delivery, syncs other tabs)
         io.to(userId).emit("newMessage", message);
 
-        console.log(`💬 Message saved: ${userId} → ${receiverId}`);
+        logger.info("Socket message saved", {
+          senderId: userId,
+          receiverId,
+          messageId: message._id,
+        });
       } catch (err) {
-        console.error("❌ sendMessage error:", err.message);
+        logger.error("sendMessage error", {
+          error: err,
+          userId,
+          socketId: socket.id,
+        });
         socket.emit("error", { message: "Failed to send message." });
       }
     });
@@ -130,8 +169,28 @@ export const initSocket = (httpServer) => {
     // Server: forwards typing indicator to receiver
     socket.on("typing", ({ receiverId }) => {
       if (!receiverId) return;
-      // Emit to receiver's room EXCEPT the sender (they know they're typing)
-      socket.to(receiverId).emit("typing", { senderId: userId });
+
+      consumeRateLimit({
+        keyPrefix: "rate:socket:typing",
+        identifier: `${userId}:${socket.id}`,
+        windowSeconds: runtimeConfig.rateLimit.typingWindowSeconds,
+        maxRequests: runtimeConfig.rateLimit.typingMaxRequests,
+      })
+        .then((rateLimit) => {
+          if (!rateLimit.allowed) {
+            return;
+          }
+
+          // Emit to receiver's room EXCEPT the sender (they know they're typing)
+          socket.to(receiverId).emit("typing", { senderId: userId });
+        })
+        .catch((error) => {
+          logger.error("typing rate limit error", {
+            error,
+            userId,
+            socketId: socket.id,
+          });
+        });
     });
 
     // ── stopTyping ───────────────────────────────────────────────────────────
@@ -146,18 +205,27 @@ export const initSocket = (httpServer) => {
       try {
         await Message.updateMany(
           { sender: senderId, receiver: userId, read: false },
-          { $set: { read: true } }
+          { $set: { read: true } },
         );
         // Notify the sender their messages were read
         io.to(senderId).emit("messagesRead", { readBy: userId });
       } catch (err) {
-        console.error("❌ markAsRead error:", err.message);
+        logger.error("markAsRead error", {
+          error: err,
+          userId,
+          senderId,
+          socketId: socket.id,
+        });
       }
     });
 
     // ── disconnect ───────────────────────────────────────────────────────────
     socket.on("disconnect", async (reason) => {
-      console.log(`🔌 Socket disconnected: userId=${userId} reason=${reason}`);
+      logger.info("Socket disconnected", {
+        userId,
+        socketId: socket.id,
+        reason,
+      });
 
       // Only remove from online set if user has NO other active sockets
       // WHY: User might have two browser tabs open — closing one tab
@@ -167,11 +235,11 @@ export const initSocket = (httpServer) => {
         await redis.srem(ONLINE_USERS_KEY, userId);
         const onlineUsers = await redis.smembers(ONLINE_USERS_KEY);
         io.emit("onlineUsers", onlineUsers);
-        console.log(`👋 User ${userId} is now offline`);
+        logger.info("User went offline", { userId });
       }
     });
   });
 
-  console.log("✅ Socket.IO initialized with Redis adapter.");
+  logger.info("Socket.IO initialized with Redis adapter");
   return io;
 };

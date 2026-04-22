@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "nodemon server.js",
     "start": "node server.js",
-    "server": "node server.js"
+    "server": "node server.js",
+    "benchmark:auth": "node scripts/auth-latency-baseline.mjs"
   },
   "keywords": [],
   "author": "avneesh",

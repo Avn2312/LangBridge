@@ -1,5 +1,6 @@
 import Redis from "ioredis";
 import { createClient } from "redis";
+import { logger } from "./logger.js";
 
 const redisHost = process.env.REDIS_HOST || "127.0.0.1";
 const redisPort = Number(process.env.REDIS_PORT) || 6379;
@@ -8,8 +9,13 @@ const redisPassword = process.env.REDIS_PASSWORD || undefined;
 // ─── Helper: build ioredis options from env ───────────────────────────────────
 const buildIoRedisOptions = () =>
   process.env.REDIS_URL
-    ? { lazyConnect: true }                               // URL parsed by ioredis directly
-    : { host: redisHost, port: redisPort, password: redisPassword, lazyConnect: true };
+    ? { lazyConnect: true } // URL parsed by ioredis directly
+    : {
+        host: redisHost,
+        port: redisPort,
+        password: redisPassword,
+        lazyConnect: true,
+      };
 
 // ─── Main Redis client ────────────────────────────────────────────────────────
 // Used for general commands: SET, GET, DEL (e.g. JWT blacklist, online-user sets)
@@ -54,20 +60,37 @@ const sessionRedisClient = createClient(
 );
 
 // ─── Event listeners ──────────────────────────────────────────────────────────
-redis.on("connect", () => console.log("✅ Redis (main) connected."));
-redis.on("error", (err) => console.error("❌ Redis (main) error:", err));
+redis.on("connect", () => logger.info("Redis connected", { client: "main" }));
+redis.on("error", (err) =>
+  logger.error("Redis connection error", { client: "main", error: err }),
+);
 
-pubClient.on("connect", () => console.log("✅ Redis (pub) connected."));
-pubClient.on("error", (err) => console.error("❌ Redis (pub) error:", err));
+pubClient.on("connect", () =>
+  logger.info("Redis connected", { client: "pub" }),
+);
+pubClient.on("error", (err) =>
+  logger.error("Redis connection error", { client: "pub", error: err }),
+);
 
-subClient.on("connect", () => console.log("✅ Redis (sub) connected."));
-subClient.on("error", (err) => console.error("❌ Redis (sub) error:", err));
+subClient.on("connect", () =>
+  logger.info("Redis connected", { client: "sub" }),
+);
+subClient.on("error", (err) =>
+  logger.error("Redis connection error", { client: "sub", error: err }),
+);
 
-sessionRedisClient.on("connect", () => console.log("✅ Redis (session store) connected."));
-sessionRedisClient.on("error", (err) => console.error("❌ Redis (session store) error:", err));
+sessionRedisClient.on("connect", () =>
+  logger.info("Redis connected", { client: "session-store" }),
+);
+sessionRedisClient.on("error", (err) =>
+  logger.error("Redis connection error", {
+    client: "session-store",
+    error: err,
+  }),
+);
 
 sessionRedisClient.connect().catch((err) => {
-  console.error("❌ Failed to connect Redis session store:", err);
+  logger.error("Failed to connect Redis session store", err);
 });
 
 export { redis, pubClient, subClient, sessionRedisClient, Redis };

@@ -1,4 +1,5 @@
 import { body, validationResult } from "express-validator";
+import { sendError } from "../lib/apiResponse.js";
 
 const validate = (req, res, next) => {
   const errors = validationResult(req);
@@ -7,7 +8,8 @@ const validate = (req, res, next) => {
     return next();
   }
 
-  return res.status(400).json({
+  return sendError(res, 400, "Validation failed.", {
+    code: "VALIDATION_ERROR",
     errors: errors.array(),
   });
 };

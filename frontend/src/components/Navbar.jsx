@@ -1,16 +1,26 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Link, useLocation } from "react-router";
 import useAuthUser from "../hooks/useAuthUser.js";
 import { Globe, MessageCircle, BellIcon, LogOutIcon } from "lucide-react";
 import ThemeSelector from "./ThemeSelector.jsx";
 import useLogout from "../hooks/useLogout.js";
 import { motion } from "framer-motion";
+import { useSocketStore } from "../store/socketStore.js";
 
 const Navbar = () => {
   const { authUser } = useAuthUser();
   const location = useLocation();
   const isChatPage = location.pathname?.startsWith("/chat");
   const { logoutMutation } = useLogout();
+  const friendRequestCount = useSocketStore((s) => s.friendRequestCount);
+  const clearFriendRequestCount = useSocketStore((s) => s.clearFriendRequestCount);
+
+  // Clear the badge whenever the user is on the notification page
+  useEffect(() => {
+    if (location.pathname === "/notifications") {
+      clearFriendRequestCount();
+    }
+  }, [location.pathname, clearFriendRequestCount]);
 
   return (
     <motion.nav
@@ -76,7 +86,11 @@ const Navbar = () => {
               className="btn btn-ghost btn-circle relative group"
             >
               <BellIcon className="h-6 w-6 text-[#9bb7d4] group-hover:text-[#4fc3f7] transition-colors" />
-              <span className="absolute top-1 right-1 bg-[#06B6D4] rounded-full w-2 h-2"></span>
+              {friendRequestCount > 0 && (
+                <span className="absolute top-1 right-1 bg-[#06B6D4] rounded-full min-w-[16px] h-4 flex items-center justify-center text-[10px] text-white font-bold px-1">
+                  {friendRequestCount > 9 ? "9+" : friendRequestCount}
+                </span>
+              )}
             </motion.button>
           </Link>
 
@@ -84,7 +98,7 @@ const Navbar = () => {
 
           <motion.div whileHover={{ scale: 1.08 }} className="avatar ring ring-[#06B6D4]/40 ring-offset-2">
             <div className="w-9 sm:w-10 rounded-full">
-              <img src={authUser?.profilePic} alt="User Avatar" />
+              <img src={authUser?.profilePic || "https://api.dicebear.com/7.x/avataaars/svg?seed=fallback"} alt="User Avatar" />
             </div>
           </motion.div>
 

@@ -21,6 +21,9 @@ import NoRecommendedUser from "../components/NoRecommendedUser.jsx";
 import { useThemeStore } from "../store/useThemeStore.js";
 import useAuthUser from "../hooks/useAuthUser.js";
 import toast from "react-hot-toast";
+import { useSocketStore } from "../store/socketStore.js";
+
+const FALLBACK_AVATAR = "https://api.dicebear.com/7.x/avataaars/svg?seed=fallback";
 
 const HomePage = () => {
   const queryClient = useQueryClient();
@@ -28,6 +31,9 @@ const HomePage = () => {
   const { authUser } = useAuthUser();
   const [outgoingRequestsIds, setOutgoingRequestsIds] = useState(new Set());
   const isVerified = Boolean(authUser?.verified);
+
+  // Real-time online presence
+  const onlineUsers = useSocketStore((s) => s.onlineUsers);
 
   const { data: friends = [], isLoading: loadingFriends } = useQuery({
     queryKey: ["friends"],
@@ -116,7 +122,7 @@ const HomePage = () => {
                 whileHover={{ scale: 1.03 }}
                 transition={{ type: "spring", stiffness: 200 }}
               >
-                <FriendCard friend={friend} />
+                <FriendCard friend={friend} isOnline={onlineUsers.has(friend._id)} />
               </motion.div>
             ))}
           </motion.div>
@@ -171,7 +177,7 @@ const HomePage = () => {
                     <div className="flex items-center gap-4">
                       <div className="w-16 h-16 rounded-full overflow-hidden ring-2 ring-blue-500/40">
                         <img
-                          src={user.profilePic}
+                          src={user.profilePic || FALLBACK_AVATAR}
                           alt={user.fullName}
                           className="w-full h-full object-cover"
                         />

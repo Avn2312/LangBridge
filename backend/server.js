@@ -3,6 +3,7 @@ import http from "http";
 import app from "./src/app.js";
 import { connectDB } from "./src/lib/db.js";
 import { initSocket } from "./src/lib/socket.js";
+import { logger } from "./src/lib/logger.js";
 
 const PORT = process.env.PORT || 3000;
 
@@ -16,22 +17,21 @@ const PORT = process.env.PORT || 3000;
 //   → "Express is just a request handler. Socket.IO sits at the
 //      lower http.Server level to intercept upgrade events."
 const startServer = async () => {
-    await connectDB();
+  await connectDB();
 
-    // Create the raw HTTP server and wrap Express as its request handler
-    const httpServer = http.createServer(app);
+  // Create the raw HTTP server and wrap Express as its request handler
+  const httpServer = http.createServer(app);
 
-    // Initialize Socket.IO on the http server (attaches Redis adapter inside)
-    initSocket(httpServer);
+  // Initialize Socket.IO on the http server (attaches Redis adapter inside)
+  initSocket(httpServer);
 
-    // Now bind to port — Socket.IO is ready before any connections arrive
-    httpServer.listen(PORT, () => {
-        console.log(`🚀 Server is running on port ${PORT}`);
-    });
+  // Now bind to port — Socket.IO is ready before any connections arrive
+  httpServer.listen(PORT, () => {
+    logger.info("Server is running", { port: PORT });
+  });
 };
 
 startServer().catch((error) => {
-    console.error("Failed to start server:", error.message);
-    process.exit(1);
+  logger.error("Failed to start server", error);
+  process.exit(1);
 });
-

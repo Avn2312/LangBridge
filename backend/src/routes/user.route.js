@@ -55,6 +55,10 @@ router.get(
   requireVerifiedUser,
   receivedFollowReqsController,
 );
-router.get("/sent/requests", requireVerifiedUser, sentFollowReqsController);
+router.get(
+  "/sent/requests",
+  requireVerifiedUser,
+  sentFollowReqsController
+);
 
 export default router;

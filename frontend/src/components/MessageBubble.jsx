@@ -1,5 +1,7 @@
 import { format, isToday, isYesterday } from "date-fns";
 
+const FALLBACK_AVATAR = "https://api.dicebear.com/7.x/avataaars/svg?seed=fallback";
+
 /**
  * MessageBubble — displays a single chat message.
  *
@@ -24,7 +26,7 @@ const MessageBubble = ({ message, isOwn, senderPic }) => {
       {!isOwn && (
         <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 ring-1 ring-blue-400/30">
           <img
-            src={senderPic}
+            src={senderPic || FALLBACK_AVATAR}
             alt="avatar"
             className="w-full h-full object-cover"
           />

@@ -3,7 +3,9 @@ import { LANGUAGE_TO_FLAG } from "../constants";
 import { motion } from "framer-motion";
 import useAuthUser from "../hooks/useAuthUser.js";
 
-const FriendCard = ({ friend }) => {
+const FALLBACK_AVATAR = "https://api.dicebear.com/7.x/avataaars/svg?seed=fallback";
+
+const FriendCard = ({ friend, isOnline = false }) => {
   const { authUser } = useAuthUser();
   const isVerified = Boolean(authUser?.verified);
 
@@ -15,10 +17,21 @@ const FriendCard = ({ friend }) => {
     >
       <div className="card-body p-4">
         <div className="flex items-center gap-3 mb-3">
-          <div className="avatar size-12 ring ring-base-300 ring-offset-1">
-            <img src={friend.profilePic} alt={friend.fullName} />
+          {/* Avatar with online dot */}
+          <div className="relative">
+            <div className="avatar size-12 ring ring-base-300 ring-offset-1">
+              <img src={friend.profilePic || FALLBACK_AVATAR} alt={friend.fullName} />
+            </div>
+            {isOnline && (
+              <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-400 rounded-full ring-2 ring-base-200" />
+            )}
           </div>
-          <h3 className="font-semibold truncate">{friend.fullName}</h3>
+          <div>
+            <h3 className="font-semibold truncate">{friend.fullName}</h3>
+            {isOnline && (
+              <p className="text-xs text-emerald-400">Online</p>
+            )}
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-1.5 mb-3">

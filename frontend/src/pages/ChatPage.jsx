@@ -10,6 +10,11 @@ import { getMessages, getUserById } from "../lib/api.js";
 import MessageBubble from "../components/MessageBubble.jsx";
 import ChatInput from "../components/ChatInput.jsx";
 
+// Stable empty array — MUST be module-level so it's the same reference every render.
+// If this were inline (|| []), Zustand would see a new object each call → infinite loop.
+const EMPTY_MESSAGES = [];
+const FALLBACK_AVATAR = "https://api.dicebear.com/7.x/avataaars/svg?seed=fallback";
+
 const ChatPage = () => {
   const { id: targetUserId } = useParams();
   const navigate = useNavigate();
@@ -21,7 +26,9 @@ const ChatPage = () => {
 
   // ── Socket store selectors ──────────────────────────────────────────────────
   const socket = useSocketStore((s) => s.socket);
-  const storeMessages = useSocketStore((s) => s.messages[targetUserId] || []);
+  // Use EMPTY_MESSAGES (stable ref) as fallback — NOT inline `|| []`
+  // Inline `|| []` creates a new array each call → triggers infinite re-render
+  const storeMessages = useSocketStore((s) => s.messages[targetUserId] ?? EMPTY_MESSAGES);
   const setMessages = useSocketStore((s) => s.setMessages);
   const typingUsers = useSocketStore((s) => s.typingUsers);
   const clearUnread = useSocketStore((s) => s.clearUnread);
@@ -107,7 +114,7 @@ const ChatPage = () => {
             <div className="relative">
               <div className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-blue-500/30">
                 <img
-                  src={targetUser?.profilePic}
+                  src={targetUser?.profilePic || FALLBACK_AVATAR}
                   alt={targetUser?.fullName}
                   className="w-full h-full object-cover"
                 />
@@ -149,7 +156,7 @@ const ChatPage = () => {
           <div className="flex flex-col items-center justify-center h-full gap-3 text-gray-500">
             <div className="w-16 h-16 rounded-full overflow-hidden opacity-50">
               <img
-                src={targetUser?.profilePic}
+                src={targetUser?.profilePic || FALLBACK_AVATAR}
                 alt=""
                 className="w-full h-full object-cover"
               />
@@ -175,7 +182,7 @@ const ChatPage = () => {
                       msg.sender === authUser?._id ||
                       msg.sender?._id === authUser?._id
                     }
-                    senderPic={targetUser?.profilePic}
+                    senderPic={targetUser?.profilePic || FALLBACK_AVATAR}
                   />
                 </motion.div>
               ))}
@@ -193,7 +200,7 @@ const ChatPage = () => {
                 >
                   <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 ring-1 ring-blue-400/30">
                     <img
-                      src={targetUser?.profilePic}
+                      src={targetUser?.profilePic || FALLBACK_AVATAR}
                       alt=""
                       className="w-full h-full object-cover"
                     />

@@ -18,6 +18,9 @@ const LoginPage = () => {
     if (searchParams.get("verified") === "true") {
       toast.success("Email verified! You can now log in.");
     }
+    if (searchParams.get("error") === "oauth_failed") {
+      toast.error("Google sign-in failed. Please try again.");
+    }
   }, [searchParams]);
 
   const { isPending, error, loginMutation } = useLogin();

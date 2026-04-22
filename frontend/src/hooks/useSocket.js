@@ -83,15 +83,24 @@ const useSocket = (authUser) => {
     });
 
     // ── Friend request events ────────────────────────────────────────────────
-    // Emitted by user.controller when someone sends or accepts a request.
-    socket.on("friendRequest", () => {
-      incrementFriendRequestCount();
-      queryClient.invalidateQueries({ queryKey: ["friendRequests"] });
-    });
-
-    socket.on("friendRequestAccepted", () => {
-      queryClient.invalidateQueries({ queryKey: ["friendRequests"] });
-      queryClient.invalidateQueries({ queryKey: ["friends"] });
+    // The backend emits ONE event "friendRequest" for both cases,
+    // distinguished by the `type` field:
+    //   type: "received"  → someone sent US a request  → bump badge + refetch
+    //   type: "accepted"  → our request was accepted   → refetch friends list
+    socket.on("friendRequest", ({ type } = {}) => {
+      if (type === "received") {
+        // Incoming request — show badge on notification bell
+        incrementFriendRequestCount();
+        queryClient.invalidateQueries({ queryKey: ["friendRequests"] });
+      } else if (type === "accepted") {
+        // Our request was accepted — update friends list + notification page
+        queryClient.invalidateQueries({ queryKey: ["friendRequests"] });
+        queryClient.invalidateQueries({ queryKey: ["friends"] });
+      } else {
+        // Fallback: unknown type — just refetch everything to be safe
+        queryClient.invalidateQueries({ queryKey: ["friendRequests"] });
+        queryClient.invalidateQueries({ queryKey: ["friends"] });
+      }
     });
 
     // ── Lifecycle logs ───────────────────────────────────────────────────────

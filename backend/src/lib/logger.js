@@ -1,3 +1,5 @@
+import { getTraceContext } from "./tracing.js";
+
 const LOG_LEVELS = ["debug", "info", "warn", "error"];
 const LEVEL_PRIORITY = {
   debug: 10,
@@ -49,10 +51,14 @@ const writeLog = (level, message, context = {}) => {
     return;
   }
 
+  const traceContext = getTraceContext();
   const entry = {
     timestamp: new Date().toISOString(),
     level,
     message,
+    requestId: traceContext?.requestId,
+    traceId: traceContext?.traceId,
+    spanId: traceContext?.spanId,
     context: normalizeContext(context),
   };
 

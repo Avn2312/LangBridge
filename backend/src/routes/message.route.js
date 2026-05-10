@@ -1,4 +1,5 @@
 import express from "express";
+import multer from "multer";
 import {
   protectRoute,
   requireVerifiedUser,
@@ -6,12 +7,19 @@ import {
 import {
   getMessages,
   getConversations,
+  uploadMessageAttachment,
 } from "../controllers/message.controller.js";
 import { userIdParamValidation } from "../validation/user.validator.js";
 import { createRateLimitMiddleware } from "../lib/rateLimit.js";
 import { runtimeConfig } from "../lib/runtimeConfig.js";
 
 const router = express.Router();
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024,
+  },
+});
 
 const messageReadLimiter = createRateLimitMiddleware({
   keyPrefix: "rate:messages:http",
@@ -22,6 +30,15 @@ const messageReadLimiter = createRateLimitMiddleware({
 
 // All message routes require authentication
 router.use(protectRoute);
+
+// ── POST /api/messages/attachments ───────────────────────────────────────────
+// Upload chat files/voice notes before sending the Socket.IO message.
+router.post(
+  "/attachments",
+  requireVerifiedUser,
+  upload.single("file"),
+  uploadMessageAttachment,
+);
 
 // ── GET /api/messages/conversations ──────────────────────────────────────────
 // List all conversations (with last message + unread count)

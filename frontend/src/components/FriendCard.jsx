@@ -1,9 +1,12 @@
+/* eslint-disable no-unused-vars */
 import { Link } from "react-router";
-import { LANGUAGE_TO_FLAG } from "../constants";
 import { motion } from "framer-motion";
 import useAuthUser from "../hooks/useAuthUser.js";
+import { getLanguageFlag as getLanguageFlagUtil } from "../lib/language.js";
+import { MessageCircle } from "lucide-react";
 
-const FALLBACK_AVATAR = "https://api.dicebear.com/7.x/avataaars/svg?seed=fallback";
+const FALLBACK_AVATAR =
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=fallback";
 
 const FriendCard = ({ friend, isOnline = false }) => {
   const { authUser } = useAuthUser();
@@ -11,72 +14,63 @@ const FriendCard = ({ friend, isOnline = false }) => {
 
   return (
     <motion.div
-      whileHover={{ scale: 1.02 }}
+      whileHover={{ y: -3 }}
       transition={{ type: "spring", stiffness: 250 }}
-      className="card bg-base-200 border border-base-300 hover:border-primary hover:shadow-lg transition-all duration-300"
+      className="group lb-surface-card lb-surface-card-hover h-full"
     >
-      <div className="card-body p-4">
-        <div className="flex items-center gap-3 mb-3">
-          {/* Avatar with online dot */}
-          <div className="relative">
-            <div className="avatar size-12 ring ring-base-300 ring-offset-1">
-              <img src={friend.profilePic || FALLBACK_AVATAR} alt={friend.fullName} />
-            </div>
+      <div className="flex h-full flex-col gap-5">
+        <div className="flex items-center gap-3.5">
+          <div className="lb-avatar-ring relative h-14 w-14 shrink-0 overflow-hidden">
+            <img
+              src={friend.profilePic || FALLBACK_AVATAR}
+              alt={friend.fullName}
+              className="h-full w-full object-cover"
+            />
             {isOnline && (
-              <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-400 rounded-full ring-2 ring-base-200" />
+              <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-emerald-400 ring-2 ring-[#0C1A2B]" />
             )}
           </div>
-          <div>
-            <h3 className="font-semibold truncate">{friend.fullName}</h3>
-            {isOnline && (
-              <p className="text-xs text-emerald-400">Online</p>
-            )}
+
+          <div className="min-w-0">
+            <h3 className="truncate text-[1.03rem] font-semibold tracking-tight text-white">
+              {friend.fullName}
+            </h3>
+            <p className="mt-0.5 text-xs text-slate-400">
+              {isOnline ? "Online now" : "Last seen recently"}
+            </p>
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          <span className="badge badge-secondary text-xs">
-            {getLanguageFlag(friend.nativeLanguage)}
+        <div className="flex flex-wrap gap-2">
+          <span className="lb-pill-blue">
+            {getLanguageFlagUtil(friend.nativeLanguage)}
             Native: {friend.nativeLanguage}
           </span>
-          <span className="badge badge-outline text-xs">
-            {getLanguageFlag(friend.learningLanguage)}
+          <span className="lb-pill-cyan">
+            {getLanguageFlagUtil(friend.learningLanguage)}
             Learning: {friend.learningLanguage}
           </span>
         </div>
 
-        {isVerified ? (
-          <Link to={`/chat/${friend._id}`} className="btn btn-outline w-full">
-            Message
-          </Link>
-        ) : (
-          <button
-            type="button"
-            className="btn btn-disabled w-full"
-            title="Verify email to start chat"
-          >
-            Verify Email Required
-          </button>
-        )}
+        <div className="mt-auto">
+          {isVerified ? (
+            <Link to={`/chat/${friend._id}`} className="lb-btn-primary w-full">
+              <MessageCircle className="h-4 w-4" />
+              Open Chat
+            </Link>
+          ) : (
+            <button
+              type="button"
+              className="inline-flex w-full cursor-not-allowed items-center justify-center rounded-xl border border-slate-400/20 bg-slate-500/10 px-4 py-2.5 text-sm font-medium text-slate-400"
+              title="Verify email to start chat"
+            >
+              Verify Email Required
+            </button>
+          )}
+        </div>
       </div>
     </motion.div>
   );
 };
 
 export default FriendCard;
-
-export function getLanguageFlag(language) {
-  if (!language) return null;
-  const langLower = language.toLowerCase();
-  const countryCode = LANGUAGE_TO_FLAG[langLower];
-  if (countryCode) {
-    return (
-      <img
-        src={`https://flagcdn.com/24x18/${countryCode}.png`}
-        alt={`${langLower} flag`}
-        className="h-3 mr-1 inline-block"
-      />
-    );
-  }
-  return null;
-}

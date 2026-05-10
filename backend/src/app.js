@@ -1,6 +1,8 @@
 import express from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
+import helmet from "helmet";
+import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import session from "express-session";
@@ -9,6 +11,9 @@ import passport from "passport";
 import { sessionRedisClient } from "./lib/redis.js";
 import { runtimeConfig } from "./lib/runtimeConfig.js";
 import { sendError } from "./lib/apiResponse.js";
+import { getLiveness, getReadiness } from "./lib/health.js";
+import { renderMetrics } from "./lib/metrics.js";
+import { traceContextMiddleware } from "./lib/tracing.js";
 import { requestLogger } from "./middlewares/requestLogger.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 
@@ -19,10 +24,14 @@ import "./lib/passport.js";
 import authRoutes from "./routes/auth.route.js";
 import userRoutes from "./routes/user.route.js";
 import messageRoutes from "./routes/message.route.js";
+import learningRoutes from "./routes/learning.route.js";
+import moderationRoutes from "./routes/moderation.route.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const isProduction = process.env.NODE_ENV === "production";
+const isTest = process.env.NODE_ENV === "test";
+const frontendDistPath = path.join(__dirname, "../../frontend/dist");
 const allowedOrigins = new Set([
   ...runtimeConfig.corsOrigins,
   runtimeConfig.frontendUrl,
@@ -35,6 +44,12 @@ if (isProduction) {
 }
 
 // ──── MIDDLEWARE SETUP ────
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    contentSecurityPolicy: isProduction ? undefined : false,
+  }),
+);
 
 // CORS — allows the frontend (localhost:5173) to make requests to our backend
 // WHY credentials:true? Because we send JWT in httpOnly cookies,
@@ -52,16 +67,37 @@ app.use(
   }),
 );
 
+app.use(traceContextMiddleware);
 app.use(requestLogger);
+
+app.get("/healthz", (req, res) => {
+  res.status(200).json(getLiveness());
+});
+
+app.get("/readyz", async (req, res, next) => {
+  try {
+    const readiness = await getReadiness();
+    res.status(readiness.status === "ok" ? 200 : 503).json(readiness);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/metrics", (req, res) => {
+  res.set("Content-Type", "text/plain; version=0.0.4; charset=utf-8");
+  res.status(200).send(renderMetrics());
+});
 
 // Express session — Redis-backed for production-safe persistence and scaling.
 app.use(
   session({
-    store: new RedisStore({
-      client: sessionRedisClient,
-      prefix: "langbridge:sess:",
-      ttl: runtimeConfig.session.ttlSeconds,
-    }),
+    store: isTest
+      ? undefined
+      : new RedisStore({
+          client: sessionRedisClient,
+          prefix: "langbridge:sess:",
+          ttl: runtimeConfig.session.ttlSeconds,
+        }),
     name: runtimeConfig.session.name,
     secret: runtimeConfig.session.secret,
     resave: false,
@@ -94,6 +130,8 @@ app.use(passport.session());
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/messages", messageRoutes);
+app.use("/api/learning", learningRoutes);
+app.use("/api/moderation", moderationRoutes);
 
 app.use("/api", (req, res) => {
   sendError(res, 404, "API route not found.", { code: "NOT_FOUND" });
@@ -101,8 +139,8 @@ app.use("/api", (req, res) => {
 
 // ──── PRODUCTION STATIC FILES ────
 // In production, Express serves the React build files
-if (process.env.NODE_ENV === "production") {
-  app.use(express.static(path.join(__dirname, "../../frontend/dist")));
+if (isProduction && fs.existsSync(path.join(frontendDistPath, "index.html"))) {
+  app.use(express.static(frontendDistPath));
 
   // For any route not handled by our API, serve index.html (React app)
   app.get("*", (req, res) => {
@@ -112,7 +150,7 @@ if (process.env.NODE_ENV === "production") {
       });
     }
 
-    res.sendFile(path.join(__dirname, "../../frontend/dist/index.html"));
+    res.sendFile(path.join(frontendDistPath, "index.html"));
   });
 }
 

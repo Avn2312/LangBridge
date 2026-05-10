@@ -1,16 +1,22 @@
 import { redis } from "./redis.js";
 import { sendError } from "./apiResponse.js";
 
+// Converts any identifier into a safe Redis key segment
 const normalizeIdentifier = (value) =>
   String(value ?? "anonymous")
     .toLowerCase()
     .replace(/[^a-z0-9:_-]/g, "_");
 
+
+// Builds a namespaced Redis key from multiple parts, ensuring consistent formatting
 const buildKey = (...parts) => parts.map(normalizeIdentifier).join(":");
 
+
+// Gets the client's IP address from the request, accounting for proxies
 export const getClientIp = (req) =>
   req.ip || req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || "unknown";
 
+// Main function to consume a rate limit and return the current status
 export async function consumeRateLimit({
   keyPrefix,
   identifier,
@@ -33,6 +39,8 @@ export async function consumeRateLimit({
   };
 }
 
+
+// 
 export function createRateLimitMiddleware({
   keyPrefix,
   windowSeconds,

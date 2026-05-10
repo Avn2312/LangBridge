@@ -1,9 +1,11 @@
+/* eslint-disable no-unused-vars */
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, Globe, MessageCircle } from "lucide-react";
 import { Link } from "react-router";
 // import { useQueryClient } from "@tanstack/react-query";
 import useSignUp from "../hooks/useSignUp.js";
+import { API_BASE_URL } from "../lib/config.js";
 
 const SignUpPage = () => {
   const [signupData, setSignupData] = useState({
@@ -16,9 +18,7 @@ const SignUpPage = () => {
   const { isPending, error, signupMutation } = useSignUp();
 
   const handleGoogleAuth = () => {
-    const apiBaseUrl =
-      import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
-    window.location.href = `${apiBaseUrl}/auth/google`;
+    window.location.href = `${API_BASE_URL}/auth/google`;
   };
 
   const handleSignup = (e) => {

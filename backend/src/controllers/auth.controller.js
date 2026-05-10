@@ -15,6 +15,9 @@ import {
   getBaseUrl,
   getFrontendUrl,
 } from "../lib/runtimeConfig.js";
+import { deleteCachePatterns, invalidateUserListCaches } from "../lib/cache.js";
+import { eventTopics } from "../lib/events.js";
+import { publishEvent } from "../lib/kafka.js";
 
 async function sendVerificationEmail({ userId, email, fullName }) {
   const verificationToken = generateVerificationToken(userId);
@@ -90,6 +93,17 @@ export async function signup(req, res) {
       // Log but don't fail — user is created and has a valid session cookie.
       logger.error("Verification email failed to send", emailError);
     }
+
+    publishEvent({
+      topic: eventTopics.userSignedUp,
+      key: newUser._id.toString(),
+      payload: {
+        userId: newUser._id.toString(),
+        email: newUser.email,
+        provider: newUser.provider,
+        isOnboarded: newUser.isOnboarded,
+      },
+    });
 
     res.status(201).json({
       success: true,
@@ -334,11 +348,25 @@ export async function logout(req, res) {
 export async function onboard(req, res) {
   try {
     const userId = req.user._id;
+    const interests = Array.isArray(req.body.interests)
+      ? req.body.interests
+          .map((interest) => String(interest).trim())
+          .filter(Boolean)
+          .slice(0, 8)
+      : [];
 
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       {
-        ...req.body,
+        fullName: req.body.fullName,
+        bio: req.body.bio,
+        nativeLanguage: req.body.nativeLanguage,
+        learningLanguage: req.body.learningLanguage,
+        location: req.body.location,
+        profilePic: req.body.profilePic,
+        timezone: req.body.timezone || "",
+        proficiencyLevel: req.body.proficiencyLevel || "",
+        interests,
         isOnboarded: true,
       },
       { new: true },
@@ -347,6 +375,21 @@ export async function onboard(req, res) {
     if (!updatedUser) {
       return sendError(res, 404, "User not found.", { code: "USER_NOT_FOUND" });
     }
+
+    await Promise.all([
+      invalidateUserListCaches([userId]),
+      deleteCachePatterns(["langbridge:cache:recommendations:*"]),
+    ]);
+
+    publishEvent({
+      topic: eventTopics.notificationSend,
+      key: userId.toString(),
+      payload: {
+        userId: userId.toString(),
+        type: "onboarding.completed",
+        channel: "analytics",
+      },
+    });
 
     res.status(200).json({ success: true, user: updatedUser });
   } catch (error) {

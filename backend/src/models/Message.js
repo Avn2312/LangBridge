@@ -26,9 +26,40 @@ const messageSchema = new mongoose.Schema(
     },
     text: {
       type: String,
-      required: true,
       trim: true,
       maxlength: 2000,
+      default: "",
+    },
+    attachments: [
+      {
+        url: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        type: {
+          type: String,
+          enum: ["image", "file", "audio"],
+          default: "file",
+        },
+        filename: {
+          type: String,
+          trim: true,
+          maxlength: 255,
+          default: "",
+        },
+        size: {
+          type: Number,
+          min: 0,
+          default: 0,
+        },
+      },
+    ],
+    clientMessageId: {
+      type: String,
+      trim: true,
+      maxlength: 64,
+      // Optional client-generated id for idempotent retry handling.
     },
     read: {
       type: Boolean,
@@ -36,12 +67,16 @@ const messageSchema = new mongoose.Schema(
       // WHY track read status?
       //   Lets us show unread counts + "seen" indicators (like WhatsApp blue ticks)
     },
+    readAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
     // createdAt = when message was sent
     // updatedAt = when read status last changed
-  }
+  },
 );
 
 // ─── Compound Index ────────────────────────────────────────────────────────────
@@ -50,8 +85,19 @@ const messageSchema = new mongoose.Schema(
 // With this index, it finds the matching documents instantly.
 // INTERVIEW: "What indexes do you use and why?"
 //   → "Compound index on [sender, receiver] because 99% of queries filter on both."
-messageSchema.index({ sender: 1, receiver: 1 });
+messageSchema.index({ sender: 1, receiver: 1, createdAt: -1 });
+messageSchema.index({ receiver: 1, sender: 1, createdAt: -1 });
+messageSchema.index({ receiver: 1, read: 1, createdAt: -1 });
 messageSchema.index({ createdAt: -1 }); // for sorting newest-first
+messageSchema.index({ sender: 1, createdAt: -1, _id: -1 });
+messageSchema.index({ receiver: 1, createdAt: -1, _id: -1 });
+messageSchema.index(
+  { sender: 1, clientMessageId: 1 },
+  {
+    unique: true,
+    sparse: true,
+  },
+);
 
 const Message = mongoose.model("Message", messageSchema);
 

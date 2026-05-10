@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { BellIcon } from "lucide-react";
 import { motion } from "framer-motion";
 

@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import {
@@ -7,29 +8,41 @@ import {
   sendFriendRequest,
 } from "../lib/api.js";
 import { Link } from "react-router";
-import {
-  CheckCircleIcon,
-  MapPinIcon,
-  UserPlusIcon,
-  UsersIcon,
-} from "lucide-react";
+import { RotateCcwIcon, SlidersHorizontalIcon, UsersIcon } from "lucide-react";
 import { motion } from "framer-motion";
-import { capitialize } from "../lib/utils.js";
-import FriendCard, { getLanguageFlag } from "../components/FriendCard.jsx";
+import FriendCard from "../components/FriendCard.jsx";
 import NoFriendsFound from "../components/NoFriendsFound.jsx";
 import NoRecommendedUser from "../components/NoRecommendedUser.jsx";
-import { useThemeStore } from "../store/useThemeStore.js";
 import useAuthUser from "../hooks/useAuthUser.js";
 import toast from "react-hot-toast";
 import { useSocketStore } from "../store/socketStore.js";
+import RecommendedUserCard from "../components/RecommendedUserCard.jsx";
+import { LANGUAGES } from "../constants/index.js";
 
-const FALLBACK_AVATAR = "https://api.dicebear.com/7.x/avataaars/svg?seed=fallback";
+const PROFICIENCY_OPTIONS = ["beginner", "intermediate", "advanced"];
+
+const defaultDiscoveryFilters = {
+  targetLanguage: "",
+  nativeLanguage: "",
+  proficiency: "",
+  onlineNow: false,
+};
+
+const hasActiveDiscoveryFilters = (filters) =>
+  Boolean(
+    filters.targetLanguage ||
+      filters.nativeLanguage ||
+      filters.proficiency ||
+      filters.onlineNow,
+  );
 
 const HomePage = () => {
   const queryClient = useQueryClient();
-  const { theme } = useThemeStore();
   const { authUser } = useAuthUser();
   const [outgoingRequestsIds, setOutgoingRequestsIds] = useState(new Set());
+  const [discoveryFilters, setDiscoveryFilters] = useState(
+    defaultDiscoveryFilters,
+  );
   const isVerified = Boolean(authUser?.verified);
 
   // Real-time online presence
@@ -41,8 +54,12 @@ const HomePage = () => {
   });
 
   const { data: recommendedUsers = [], isLoading: loadingUsers } = useQuery({
-    queryKey: ["users"],
-    queryFn: getRecommendedUsers,
+    queryKey: ["users", discoveryFilters],
+    queryFn: () =>
+      getRecommendedUsers({
+        ...discoveryFilters,
+        onlineNow: discoveryFilters.onlineNow ? "true" : "",
+      }),
   });
 
   const { data: outgoingFriendReqs } = useQuery({
@@ -60,6 +77,8 @@ const HomePage = () => {
     },
   });
 
+  const hasDiscoveryFilters = hasActiveDiscoveryFilters(discoveryFilters);
+
   useEffect(() => {
     if (!isVerified) {
       setOutgoingRequestsIds(new Set());
@@ -76,27 +95,24 @@ const HomePage = () => {
   }, [outgoingFriendReqs, isVerified]);
 
   return (
-    <div
-      className={`min-h-screen p-6 sm:p-10 transition-colors duration-300 ${
-        theme === "night"
-          ? "bg-gradient-to-b from-[#0A1A2F] via-[#0F223D] to-[#08101D] text-white"
-          : "bg-base-100 text-base-content"
-      }`}
-    >
-      <div className="container mx-auto space-y-16">
+    <div className="lb-page-shell bg-gradient-to-b from-[#0A1A2F] via-[#0F223D] to-[#08101D]">
+      <div className="lb-page-container">
         {/* ================= FRIENDS SECTION ================= */}
         <motion.div
           initial={{ opacity: 0, y: 25 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+          className="lb-page-header"
         >
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
-            Your Friends
-          </h2>
+          <div>
+            <h2 className="lb-page-title">Your Friends</h2>
+            <p className="lb-page-subtitle">
+              Keep active conversations flowing with your language partners.
+            </p>
+          </div>
           <Link
             to="/notifications"
-            className="flex items-center gap-2 border border-blue-400/40 text-blue-300 hover:text-white hover:bg-blue-500/20 rounded-xl px-4 py-2 transition-all duration-300"
+            className="inline-flex items-center gap-2 rounded-xl border border-blue-300/30 bg-blue-500/10 px-4 py-2 text-sm font-medium text-blue-100 transition-colors duration-200 hover:bg-blue-500/20"
           >
             <UsersIcon className="size-4" />
             Friend Requests
@@ -114,16 +130,14 @@ const HomePage = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2, duration: 0.6 }}
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+            className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
           >
             {friends.map((friend) => (
-              <motion.div
+              <FriendCard
                 key={friend._id}
-                whileHover={{ scale: 1.03 }}
-                transition={{ type: "spring", stiffness: 200 }}
-              >
-                <FriendCard friend={friend} isOnline={onlineUsers.has(friend._id)} />
-              </motion.div>
+                friend={friend}
+                isOnline={onlineUsers.has(friend._id)}
+              />
             ))}
           </motion.div>
         )}
@@ -134,29 +148,145 @@ const HomePage = () => {
             initial={{ opacity: 0, y: 25 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="mb-10 sm:mb-12"
+            className="mb-6 sm:mb-8"
           >
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">
+            <h2 className="lb-page-title bg-gradient-to-r from-indigo-300 to-cyan-300">
               Meet New Learners
             </h2>
-            <p className="text-gray-300 mt-2 text-sm sm:text-base">
-              Discover perfect language exchange partners based on your
-              interests and learning goals.
+            <p className="lb-page-subtitle max-w-2xl">
+              Discover language exchange partners based on your profile and
+              learning goals.
             </p>
           </motion.div>
+
+          <div className="mb-8 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="inline-flex items-center gap-2 text-sm font-semibold text-slate-200">
+                  <SlidersHorizontalIcon className="size-4 text-cyan-300" />
+                  Discovery filters
+                </div>
+                <p className="mt-1 text-xs text-slate-400">
+                  Tune recommendations by practice goals, exchange fit, and availability.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-400/20 px-3 py-2 text-xs font-semibold text-slate-300 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                onClick={() => setDiscoveryFilters(defaultDiscoveryFilters)}
+                disabled={!hasDiscoveryFilters}
+              >
+                <RotateCcwIcon className="size-3.5" />
+                Reset
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <label className="form-control">
+                <span className="label-text mb-1.5 text-xs font-medium text-slate-300">
+                  Language I want to practice
+                </span>
+                <select
+                  value={discoveryFilters.targetLanguage}
+                  onChange={(event) =>
+                    setDiscoveryFilters((filters) => ({
+                      ...filters,
+                      targetLanguage: event.target.value,
+                    }))
+                  }
+                  className="select select-bordered min-h-11 w-full border-white/10 bg-slate-950/60 text-sm text-slate-100"
+                >
+                  <option value="">Any practice language</option>
+                  {LANGUAGES.map((language) => (
+                    <option key={`target-${language}`} value={language.toLowerCase()}>
+                      {language}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="form-control">
+                <span className="label-text mb-1.5 text-xs font-medium text-slate-300">
+                  My native language
+                </span>
+                <select
+                  value={discoveryFilters.nativeLanguage}
+                  onChange={(event) =>
+                    setDiscoveryFilters((filters) => ({
+                      ...filters,
+                      nativeLanguage: event.target.value,
+                    }))
+                  }
+                  className="select select-bordered min-h-11 w-full border-white/10 bg-slate-950/60 text-sm text-slate-100"
+                >
+                  <option value="">Any exchange fit</option>
+                  {LANGUAGES.map((language) => (
+                    <option key={`native-${language}`} value={language.toLowerCase()}>
+                      {language}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="form-control">
+                <span className="label-text mb-1.5 text-xs font-medium text-slate-300">
+                  Proficiency
+                </span>
+                <select
+                  value={discoveryFilters.proficiency}
+                  onChange={(event) =>
+                    setDiscoveryFilters((filters) => ({
+                      ...filters,
+                      proficiency: event.target.value,
+                    }))
+                  }
+                  className="select select-bordered min-h-11 w-full border-white/10 bg-slate-950/60 text-sm text-slate-100"
+                >
+                  <option value="">Any level</option>
+                  {PROFICIENCY_OPTIONS.map((level) => (
+                    <option key={level} value={level}>
+                      {level.charAt(0).toUpperCase() + level.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3">
+                <span className="text-sm font-medium text-slate-200">
+                  Online now
+                </span>
+                <input
+                  type="checkbox"
+                  className="toggle toggle-info toggle-sm"
+                  checked={discoveryFilters.onlineNow}
+                  onChange={(event) =>
+                    setDiscoveryFilters((filters) => ({
+                      ...filters,
+                      onlineNow: event.target.checked,
+                    }))
+                  }
+                />
+              </label>
+            </div>
+          </div>
 
           {loadingUsers ? (
             <div className="flex justify-center py-12">
               <span className="loading loading-spinner loading-lg"></span>
             </div>
           ) : recommendedUsers.length === 0 ? (
-            <NoRecommendedUser />
+            <NoRecommendedUser
+              filters={discoveryFilters}
+              hasActiveFilters={hasDiscoveryFilters}
+              profile={authUser}
+              onResetFilters={() => setDiscoveryFilters(defaultDiscoveryFilters)}
+            />
           ) : (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.3, duration: 0.6 }}
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+              className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3"
             >
               {recommendedUsers.map((user, i) => {
                 const hasRequestBeenSent = outgoingRequestsIds.has(user._id);
@@ -167,62 +297,14 @@ const HomePage = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.05 }}
-                    whileHover={{
-                      scale: 1.02,
-                      boxShadow:
-                        "0 0 25px rgba(0, 153, 255, 0.25), 0 0 50px rgba(0, 102, 255, 0.15)",
-                    }}
-                    className="bg-[#0E1C2D]/80 backdrop-blur-xl border border-blue-400/10 rounded-2xl p-6 space-y-5 hover:border-blue-400/40 transition-all duration-300"
                   >
-                    <div className="flex items-center gap-4">
-                      <div className="w-16 h-16 rounded-full overflow-hidden ring-2 ring-blue-500/40">
-                        <img
-                          src={user.profilePic || FALLBACK_AVATAR}
-                          alt={user.fullName}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-
-                      <div>
-                        <h3 className="font-semibold text-lg text-white">
-                          {user.fullName}
-                        </h3>
-                        {user.location && (
-                          <div className="flex items-center text-xs text-gray-400 mt-1">
-                            <MapPinIcon className="size-3 mr-1 text-blue-400" />
-                            {user.location}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* LANGUAGES */}
-                    <div className="flex flex-wrap gap-2">
-                      <span className="px-3 py-1 bg-blue-500/20 text-blue-300 rounded-lg text-xs flex items-center gap-1">
-                        {getLanguageFlag(user.nativeLanguage)}
-                        Native: {capitialize(user.nativeLanguage)}
-                      </span>
-                      <span className="px-3 py-1 bg-cyan-500/10 text-cyan-300 rounded-lg text-xs flex items-center gap-1">
-                        {getLanguageFlag(user.learningLanguage)}
-                        Learning: {capitialize(user.learningLanguage)}
-                      </span>
-                    </div>
-
-                    {user.bio && (
-                      <p className="text-sm text-gray-300 leading-relaxed">
-                        {user.bio}
-                      </p>
-                    )}
-
-                    {/* ACTION BUTTON */}
-                    <motion.button
-                      whileTap={{ scale: 0.97 }}
-                      className={`w-full py-2.5 rounded-xl font-medium flex items-center justify-center gap-2 transition-all duration-300 ${
-                        hasRequestBeenSent || !isVerified
-                          ? "bg-gray-700 text-gray-400 cursor-not-allowed"
-                          : "bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-lg"
-                      }`}
-                      onClick={() => {
+                    <RecommendedUserCard
+                      user={user}
+                      hasRequestBeenSent={hasRequestBeenSent}
+                      isVerified={isVerified}
+                      isOnline={user.isOnline || onlineUsers.has(user._id)}
+                      isPending={isPending}
+                      onRequest={() => {
                         if (!isVerified) {
                           toast.error(
                             "Please verify your email to send friend requests.",
@@ -232,25 +314,7 @@ const HomePage = () => {
 
                         sendRequestMutation(user._id);
                       }}
-                      disabled={hasRequestBeenSent || isPending || !isVerified}
-                    >
-                      {hasRequestBeenSent ? (
-                        <>
-                          <CheckCircleIcon className="size-4" />
-                          Request Sent
-                        </>
-                      ) : !isVerified ? (
-                        <>
-                          <UserPlusIcon className="size-4" />
-                          Verify Email Required
-                        </>
-                      ) : (
-                        <>
-                          <UserPlusIcon className="size-4" />
-                          Send Friend Request
-                        </>
-                      )}
-                    </motion.button>
+                    />
                   </motion.div>
                 );
               })}

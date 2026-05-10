@@ -91,5 +91,12 @@ export const onboardingValidation = [
     .trim()
     .notEmpty()
     .withMessage("location is required"),
+  body("timezone").optional().isString().trim(),
+  body("proficiencyLevel")
+    .optional()
+    .isIn(["beginner", "intermediate", "advanced", ""])
+    .withMessage("proficiencyLevel is invalid"),
+  body("interests").optional().isArray({ max: 8 }),
+  body("interests.*").optional().isString().trim().isLength({ max: 40 }),
   validate,
 ];

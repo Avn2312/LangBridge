@@ -1,4 +1,5 @@
 import { logger } from "../lib/logger.js";
+import { observeHttpRequest } from "../lib/metrics.js";
 
 const getUserId = (user) => {
   if (!user) {
@@ -12,11 +13,23 @@ export const requestLogger = (req, res, next) => {
   const startedAt = Date.now();
 
   res.on("finish", () => {
+    const durationMs = Date.now() - startedAt;
+    const route = req.route?.path || req.path || "unknown";
+
+    observeHttpRequest({
+      method: req.method,
+      route,
+      statusCode: res.statusCode,
+      durationMs,
+    });
+
     logger.info("HTTP request completed", {
+      requestId: req.id,
+      traceId: req.traceId,
       method: req.method,
       path: req.originalUrl,
       statusCode: res.statusCode,
-      durationMs: Date.now() - startedAt,
+      durationMs,
       ip: req.ip,
       userId: getUserId(req.user),
     });

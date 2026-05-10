@@ -6,12 +6,16 @@ import {
 import {
   getRecommendations,
   getMyFriends,
+  getUserByIdController,
   followRequestController,
   unfollowRequestController,
   acceptRequestController,
   rejectRequestController,
   receivedFollowReqsController,
   sentFollowReqsController,
+  blockUserController,
+  unblockUserController,
+  reportUserController,
 } from "../controllers/user.controller.js";
 import { userIdParamValidation } from "../validation/user.validator.js";
 
@@ -55,10 +59,31 @@ router.get(
   requireVerifiedUser,
   receivedFollowReqsController,
 );
+router.get("/sent/requests", requireVerifiedUser, sentFollowReqsController);
 router.get(
-  "/sent/requests",
+  "/:id",
   requireVerifiedUser,
-  sentFollowReqsController
+  userIdParamValidation,
+  getUserByIdController,
+);
+
+router.post(
+  "/block/:id",
+  requireVerifiedUser,
+  userIdParamValidation,
+  blockUserController,
+);
+router.delete(
+  "/block/:id",
+  requireVerifiedUser,
+  userIdParamValidation,
+  unblockUserController,
+);
+router.post(
+  "/report/:id",
+  requireVerifiedUser,
+  userIdParamValidation,
+  reportUserController,
 );
 
 export default router;

@@ -1,8 +1,10 @@
 const NoFriendsFound = () => {
   return (
-    <div className="card bg-base-200 p-6 text-center">
-      <h3 className="font-semibold text-lg mb-2">No friends yet.</h3>
-      <p className="text-base-connect opacity-70">
+    <div className="lb-empty-state">
+      <h3 className="text-lg font-semibold tracking-tight text-white">
+        No friends yet
+      </h3>
+      <p className="mt-2 text-sm text-slate-300">
         Connect with language partners below to start practicing together!
       </p>
     </div>

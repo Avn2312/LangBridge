@@ -1,5 +1,10 @@
+/* eslint-disable no-unused-vars */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getFriendRequests, acceptFriendRequest, rejectFriendRequest } from "../lib/api.js";
+import {
+  getFriendRequests,
+  acceptFriendRequest,
+  rejectFriendRequest,
+} from "../lib/api.js";
 import {
   BellIcon,
   ClockIcon,
@@ -14,13 +19,16 @@ import useAuthUser from "../hooks/useAuthUser.js";
 import { useEffect, useState } from "react";
 import { useSocketStore } from "../store/socketStore.js";
 
-const FALLBACK_AVATAR = "https://api.dicebear.com/7.x/avataaars/svg?seed=fallback";
+const FALLBACK_AVATAR =
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=fallback";
 
 const NotificationPage = () => {
   const queryClient = useQueryClient();
   const { authUser } = useAuthUser();
   const isVerified = Boolean(authUser?.verified);
-  const clearFriendRequestCount = useSocketStore((s) => s.clearFriendRequestCount);
+  const clearFriendRequestCount = useSocketStore(
+    (s) => s.clearFriendRequestCount,
+  );
   const friendRequestCount = useSocketStore((s) => s.friendRequestCount);
 
   // Clear the badge as soon as the user opens this page
@@ -52,7 +60,8 @@ const NotificationPage = () => {
       queryClient.invalidateQueries({ queryKey: ["friendRequests"] });
       queryClient.invalidateQueries({ queryKey: ["friends"] });
     },
-    onError: (err) => toast.error(err?.response?.data?.message || "Failed to accept."),
+    onError: (err) =>
+      toast.error(err?.response?.data?.message || "Failed to accept."),
     onSettled: () => setProcessingId(null),
   });
 
@@ -63,7 +72,8 @@ const NotificationPage = () => {
       toast.success("Friend request declined.");
       queryClient.invalidateQueries({ queryKey: ["friendRequests"] });
     },
-    onError: (err) => toast.error(err?.response?.data?.message || "Failed to decline."),
+    onError: (err) =>
+      toast.error(err?.response?.data?.message || "Failed to decline."),
     onSettled: () => setProcessingId(null),
   });
 
@@ -94,17 +104,24 @@ const NotificationPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0d1b2a] via-[#1b263b] to-[#0d1b2a] text-[#e2e8f0] py-12 px-4 sm:px-8">
-      <div className="container mx-auto max-w-4xl space-y-10">
+    <div className="lb-page-shell bg-gradient-to-b from-[#0d1b2a] via-[#1b263b] to-[#0d1b2a] text-[#e2e8f0]">
+      <div className="lb-page-container">
         {/* HEADER */}
-        <motion.h1
+        <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="text-3xl sm:text-4xl font-bold text-center bg-gradient-to-r from-[#60a5fa] to-[#38bdf8] bg-clip-text text-transparent tracking-wide"
+          className="lb-page-header"
         >
-          Notifications
-        </motion.h1>
+          <div>
+            <h1 className="lb-page-title bg-gradient-to-r from-[#60a5fa] to-[#38bdf8]">
+              Notifications
+            </h1>
+            <p className="lb-page-subtitle">
+              Stay updated on friend requests and newly accepted connections.
+            </p>
+          </div>
+        </motion.div>
 
         {isLoading ? (
           <div className="flex justify-center py-16">
@@ -118,30 +135,32 @@ const NotificationPage = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
-                className="space-y-6"
+                className="space-y-5"
               >
                 <h2 className="text-2xl font-semibold flex items-center gap-2 text-[#93c5fd]">
                   <UserCheckIcon className="h-6 w-6 text-[#60a5fa]" />
                   Friend Requests
-                  <span className="badge bg-[#2563eb] border-none ml-2 text-white">
+                  <span className="ml-2 inline-flex h-6 min-w-[24px] items-center justify-center rounded-full border border-blue-300/30 bg-blue-500/20 px-2 text-xs font-semibold text-blue-100">
                     {safeIncoming.length}
                   </span>
                 </h2>
 
-                <div className="space-y-4">
+                <div className="space-y-5">
                   {safeIncoming.map((request) => (
                     <motion.div
                       key={request._id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.4 }}
-                      className="card bg-[#1e3a8a]/10 border border-[#3b82f6]/20 shadow-lg hover:shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all backdrop-blur-sm"
+                      className="lb-surface-card lb-surface-card-hover"
                     >
-                      <div className="card-body p-5 flex items-center justify-between">
+                      <div className="flex items-center justify-between p-5">
                         <div className="flex items-center gap-4">
-                          <div className="avatar w-14 h-14 rounded-full overflow-hidden border-2 border-[#38bdf8]/60">
+                          <div className="h-14 w-14 overflow-hidden rounded-full border-2 border-cyan-300/50">
                             <img
-                              src={request.sender?.profilePic || FALLBACK_AVATAR}
+                              src={
+                                request.sender?.profilePic || FALLBACK_AVATAR
+                              }
                               alt={request.sender?.fullName}
                               className="object-cover w-full h-full"
                             />
@@ -151,10 +170,10 @@ const NotificationPage = () => {
                               {request.sender?.fullName}
                             </h3>
                             <div className="flex flex-wrap gap-2 mt-1 text-sm">
-                              <span className="badge bg-[#38bdf8]/20 text-[#93c5fd] border border-[#38bdf8]/40">
+                              <span className="lb-pill-blue">
                                 Native: {request.sender?.nativeLanguage}
                               </span>
-                              <span className="badge bg-transparent border border-[#38bdf8]/40 text-[#bae6fd]">
+                              <span className="lb-pill-cyan">
                                 Learning: {request.sender?.learningLanguage}
                               </span>
                             </div>
@@ -164,7 +183,7 @@ const NotificationPage = () => {
                         <div className="flex items-center gap-2 flex-shrink-0">
                           <button
                             id={`accept-${request._id}`}
-                            className="btn btn-sm bg-[#2563eb] hover:bg-[#1e40af] text-white border-none transition-colors duration-200 min-w-[80px]"
+                            className="lb-btn-primary min-w-[92px]"
                             onClick={() => acceptRequestMutation(request._id)}
                             disabled={processingId === request._id}
                           >
@@ -176,7 +195,7 @@ const NotificationPage = () => {
                           </button>
                           <button
                             id={`reject-${request._id}`}
-                            className="btn btn-sm bg-transparent border border-red-500/40 text-red-400 hover:bg-red-500/10 transition-colors duration-200"
+                            className="lb-btn-danger"
                             onClick={() => rejectRequestMutation(request._id)}
                             disabled={processingId === request._id}
                             title="Decline"
@@ -197,26 +216,29 @@ const NotificationPage = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
-                className="space-y-6"
+                className="space-y-5"
               >
                 <h2 className="text-2xl font-semibold flex items-center gap-2 text-[#86efac]">
                   <BellIcon className="h-6 w-6 text-[#4ade80]" />
                   New Connections
                 </h2>
 
-                <div className="space-y-4">
+                <div className="space-y-5">
                   {safeAccepted.map((notification) => (
                     <motion.div
                       key={notification._id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.4 }}
-                      className="card bg-[#1e3a8a]/10 border border-[#22c55e]/20 shadow-md hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] transition-all backdrop-blur-sm"
+                      className="lb-surface-card lb-surface-card-hover"
                     >
-                      <div className="card-body p-5 flex items-start gap-4">
-                        <div className="avatar size-12 rounded-full overflow-hidden border-2 border-[#22c55e]/60">
+                      <div className="flex items-start gap-4 p-5">
+                        <div className="size-12 rounded-full overflow-hidden border-2 border-emerald-300/50">
                           <img
-                            src={notification.recipient?.profilePic || FALLBACK_AVATAR}
+                            src={
+                              notification.recipient?.profilePic ||
+                              FALLBACK_AVATAR
+                            }
                             alt={notification.recipient?.fullName}
                             className="object-cover w-full h-full"
                           />
@@ -225,16 +247,16 @@ const NotificationPage = () => {
                           <h3 className="font-semibold text-white text-lg">
                             {notification.recipient?.fullName}
                           </h3>
-                          <p className="text-sm text-[#cbd5e1]/80 my-1">
+                          <p className="my-1 text-sm text-slate-300">
                             {notification.recipient?.fullName} accepted your
                             friend request
                           </p>
-                          <p className="text-xs flex items-center text-[#94a3b8]/70">
+                          <p className="text-xs flex items-center text-slate-400">
                             <ClockIcon className="h-3 w-3 mr-1" />
                             Recently
                           </p>
                         </div>
-                        <div className="badge bg-[#22c55e]/20 border border-[#22c55e]/40 text-[#bbf7d0]">
+                        <div className="inline-flex items-center rounded-full border border-emerald-300/30 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-200">
                           <MessageSquareIcon className="h-3 w-3 mr-1" />
                           New Friend
                         </div>

@@ -1,8 +1,8 @@
-import React, { useEffect } from "react";
+/* eslint-disable no-unused-vars */
+import React, { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
 import useAuthUser from "../hooks/useAuthUser.js";
-import { Globe, MessageCircle, BellIcon, LogOutIcon } from "lucide-react";
-import ThemeSelector from "./ThemeSelector.jsx";
+import { BellIcon, LogOutIcon, UserRound } from "lucide-react";
 import useLogout from "../hooks/useLogout.js";
 import { motion } from "framer-motion";
 import { useSocketStore } from "../store/socketStore.js";
@@ -10,10 +10,13 @@ import { useSocketStore } from "../store/socketStore.js";
 const Navbar = () => {
   const { authUser } = useAuthUser();
   const location = useLocation();
-  const isChatPage = location.pathname?.startsWith("/chat");
   const { logoutMutation } = useLogout();
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef(null);
   const friendRequestCount = useSocketStore((s) => s.friendRequestCount);
-  const clearFriendRequestCount = useSocketStore((s) => s.clearFriendRequestCount);
+  const clearFriendRequestCount = useSocketStore(
+    (s) => s.clearFriendRequestCount,
+  );
 
   // Clear the badge whenever the user is on the notification page
   useEffect(() => {
@@ -22,70 +25,47 @@ const Navbar = () => {
     }
   }, [location.pathname, clearFriendRequestCount]);
 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        profileMenuRef.current &&
+        !profileMenuRef.current.contains(event.target)
+      ) {
+        setIsProfileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   return (
     <motion.nav
       initial={{ y: -60, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ type: "spring", stiffness: 80, damping: 15 }}
-      className="sticky top-0 z-40 h-20 flex items-center shadow-md 
-      bg-gradient-to-br from-[#081a33] via-[#0d264d] to-[#133b6c] backdrop-blur-lg border-b border-[#1f3d66]"
+      className="sticky top-0 z-40 flex h-16 shrink-0 items-center border-b border-[#1f3d66] bg-gradient-to-br from-[#081a33] via-[#0d264d] to-[#133b6c] shadow-md backdrop-blur-lg sm:h-20"
     >
-      <div className="container mx-auto px-4 sm:px-8 lg:px-12 flex items-center">
-        {/* LEFT: logo (ONLY on chat pages) */}
-        <div className="flex items-center">
-          {isChatPage && (
-            <Link to="/" className="flex items-center gap-3 group cursor-pointer">
-              <motion.div
-                whileHover={{
-                  scale: 1.08,
-                  boxShadow:
-                    "0 0 25px rgba(80,200,255,0.35), 0 0 50px rgba(0,180,255,0.22)",
-                }}
-                transition={{ duration: 0.25 }}
-                className="relative w-[48px] h-[48px] flex-shrink-0"
-              >
-                <Globe
-                  size={48}
-                  strokeWidth={1.6}
-                  className="text-[#4fc3f7] group-hover:text-[#8de3ff] transition-colors duration-300"
-                />
-                <div
-                  className="absolute right-[3%] top-[56%] w-[36%] h-[36%] rounded-md flex items-center justify-center bg-[#06B6D4] transition-shadow"
-                  style={{ boxShadow: "0 0 0 rgba(6,182,212,0)" }}
-                >
-                  <MessageCircle
-                    size={48 * 0.18}
-                    strokeWidth={1.7}
-                    className="text-white"
-                  />
-                </div>
-              </motion.div>
-
-              <motion.div
-                whileHover={{ x: 3 }}
-                transition={{ type: "spring", stiffness: 200 }}
-                className="flex flex-col leading-tight"
-              >
-                <span className="font-inter text-[#4fc3f7] text-2xl sm:text-3xl font-semibold tracking-wide">
-                  Lang<span className="font-bold text-white">Bridge</span>
-                </span>
-                <small className="text-[#b0c4de] text-xs sm:text-sm">
-                  Connecting the world, one language at a time
-                </small>
-              </motion.div>
-            </Link>
-          )}
+      <div className="mx-auto flex w-full max-w-7xl items-center px-4 sm:px-8 lg:px-12">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-slate-100 sm:text-base">
+            {authUser?.fullName || "LangBridge"}
+          </p>
+          <p className="hidden text-xs text-slate-400 sm:block">
+            {authUser?.verified ? "Ready to practice" : "Verification pending"}
+          </p>
         </div>
 
         {/* RIGHT: controls */}
-        <div className="flex items-center gap-4 sm:gap-5 ml-auto">
+        <div className="ml-auto flex items-center gap-3 sm:gap-4">
           <Link to={"/notifications"}>
             <motion.button
               whileHover={{ scale: 1.12 }}
               whileTap={{ scale: 0.95 }}
-              className="btn btn-ghost btn-circle relative group"
+              className="relative grid h-10 w-10 place-items-center rounded-full border border-blue-300/20 bg-blue-950/40 text-[#9bb7d4] transition-colors duration-200 hover:border-cyan-300/40 hover:text-[#4fc3f7]"
+              aria-label="Open notifications"
             >
-              <BellIcon className="h-6 w-6 text-[#9bb7d4] group-hover:text-[#4fc3f7] transition-colors" />
+              <BellIcon className="h-5 w-5" />
               {friendRequestCount > 0 && (
                 <span className="absolute top-1 right-1 bg-[#06B6D4] rounded-full min-w-[16px] h-4 flex items-center justify-center text-[10px] text-white font-bold px-1">
                   {friendRequestCount > 9 ? "9+" : friendRequestCount}
@@ -94,21 +74,53 @@ const Navbar = () => {
             </motion.button>
           </Link>
 
-          <ThemeSelector />
+          <div className="relative" ref={profileMenuRef}>
+            <motion.button
+              type="button"
+              whileHover={{ scale: 1.08 }}
+              whileTap={{ scale: 0.96 }}
+              onClick={() => setIsProfileMenuOpen((prev) => !prev)}
+              className="avatar ring ring-[#06B6D4]/40 ring-offset-2 ring-offset-[#0d264d] transition-all duration-200 hover:ring-[#06B6D4]/70"
+              aria-label="Open profile menu"
+              aria-expanded={isProfileMenuOpen}
+            >
+              <div className="w-9 sm:w-10 rounded-full">
+                <img
+                  src={
+                    authUser?.profilePic ||
+                    "https://api.dicebear.com/7.x/avataaars/svg?seed=fallback"
+                  }
+                  alt="User Avatar"
+                />
+              </div>
+            </motion.button>
 
-          <motion.div whileHover={{ scale: 1.08 }} className="avatar ring ring-[#06B6D4]/40 ring-offset-2">
-            <div className="w-9 sm:w-10 rounded-full">
-              <img src={authUser?.profilePic || "https://api.dicebear.com/7.x/avataaars/svg?seed=fallback"} alt="User Avatar" />
-            </div>
-          </motion.div>
+            {isProfileMenuOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                className="absolute right-0 top-14 z-50 w-52 overflow-hidden rounded-xl border border-blue-300/20 bg-[#0C1B2E] shadow-2xl shadow-black/35"
+              >
+                <Link
+                  to="/profile"
+                  onClick={() => setIsProfileMenuOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 text-sm font-semibold text-slate-100 transition-colors hover:bg-cyan-400/10 hover:text-cyan-200"
+                >
+                  <UserRound className="h-4 w-4" />
+                  Profile
+                </Link>
+              </motion.div>
+            )}
+          </div>
 
           <motion.button
             whileHover={{ scale: 1.12 }}
             whileTap={{ scale: 0.95 }}
             onClick={logoutMutation}
-            className="btn btn-ghost btn-circle group"
+            className="grid h-10 w-10 place-items-center rounded-full border border-blue-300/20 bg-blue-950/40 text-[#9bb7d4] transition-colors duration-200 hover:border-red-300/40 hover:text-[#ff6961]"
+            aria-label="Log out"
           >
-            <LogOutIcon className="h-6 w-6 text-[#9bb7d4] group-hover:text-[#ff6961] transition-colors" />
+            <LogOutIcon className="h-5 w-5" />
           </motion.button>
         </div>
       </div>

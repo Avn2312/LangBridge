@@ -10,7 +10,7 @@ import { create } from "zustand";
  *   typingUsers    — Map<conversationUserId, boolean>
  *   unreadCounts   — Map<conversationUserId, number>
  */
-export const useSocketStore = create((set, get) => ({
+export const useSocketStore = create((set) => ({
   // ─── Socket instance ──────────────────────────────────────────────────────
   socket: null,
   setSocket: (socket) => set({ socket }),
@@ -28,15 +28,124 @@ export const useSocketStore = create((set, get) => ({
       messages: { ...state.messages, [userId]: msgs },
     })),
 
+  upsertOptimisticMessage: (otherUserId, message) =>
+    set((state) => {
+      const prev = state.messages[otherUserId] || [];
+      const next = [...prev];
+      const byClientId = message.clientMessageId
+        ? next.findIndex((m) => m.clientMessageId === message.clientMessageId)
+        : -1;
+      const byId = message._id
+        ? next.findIndex((m) => m._id === message._id)
+        : -1;
+      const index = byClientId >= 0 ? byClientId : byId;
+
+      if (index >= 0) {
+        next[index] = {
+          ...next[index],
+          ...message,
+        };
+      } else {
+        next.push(message);
+      }
+
+      return {
+        messages: {
+          ...state.messages,
+          [otherUserId]: next,
+        },
+      };
+    }),
+
   appendMessage: (otherUserId, message) =>
     set((state) => {
       const prev = state.messages[otherUserId] || [];
-      // Deduplicate by _id in case sender+receiver both get the echo
-      if (prev.some((m) => m._id === message._id)) return state;
+      // Replace matching optimistic message when server echo lands.
+      if (message.clientMessageId) {
+        const optimisticIndex = prev.findIndex(
+          (m) => m.clientMessageId === message.clientMessageId,
+        );
+
+        if (optimisticIndex >= 0) {
+          const next = [...prev];
+          next[optimisticIndex] = {
+            ...prev[optimisticIndex],
+            ...message,
+            status: "sent",
+            isOptimistic: false,
+          };
+
+          return {
+            messages: {
+              ...state.messages,
+              [otherUserId]: next,
+            },
+          };
+        }
+      }
+
+      // Deduplicate by _id in case sender+receiver both get the echo.
+      if (message._id && prev.some((m) => m._id === message._id)) {
+        return state;
+      }
+
       return {
         messages: {
           ...state.messages,
           [otherUserId]: [...prev, message],
+        },
+      };
+    }),
+
+  markConversationAsRead: (otherUserId, readAt = new Date().toISOString()) =>
+    set((state) => {
+      const prev = state.messages[otherUserId] || [];
+      if (prev.length === 0) return state;
+
+      let didChange = false;
+      const next = prev.map((message) => {
+        if (message.sender === otherUserId || message.read) {
+          return message;
+        }
+
+        didChange = true;
+        return {
+          ...message,
+          read: true,
+          readAt,
+        };
+      });
+
+      if (!didChange) return state;
+
+      return {
+        messages: {
+          ...state.messages,
+          [otherUserId]: next,
+        },
+      };
+    }),
+
+  setMessageStatusByClientId: (otherUserId, clientMessageId, updates) =>
+    set((state) => {
+      if (!clientMessageId) return state;
+
+      const prev = state.messages[otherUserId] || [];
+      const index = prev.findIndex(
+        (m) => m.clientMessageId === clientMessageId,
+      );
+      if (index < 0) return state;
+
+      const next = [...prev];
+      next[index] = {
+        ...next[index],
+        ...updates,
+      };
+
+      return {
+        messages: {
+          ...state.messages,
+          [otherUserId]: next,
         },
       };
     }),

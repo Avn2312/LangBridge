@@ -2,6 +2,7 @@ import "dotenv/config";
 import nodemailer from "nodemailer";
 import { logger } from "../lib/logger.js";
 
+const isTest = process.env.NODE_ENV === "test";
 const mailUser = process.env.GOOGLE_USER;
 const appPassword =
   process.env.GOOGLE_APP_PASSWORD || process.env.GMAIL_APP_PASSWORD;
@@ -12,6 +13,10 @@ const oauthConfigured =
   Boolean(mailUser);
 
 const createTransporter = () => {
+  if (isTest) {
+    return null;
+  }
+
   if (appPassword) {
     return nodemailer.createTransport({
       service: "gmail",
@@ -41,9 +46,11 @@ const createTransporter = () => {
 const transporter = createTransporter();
 
 if (!transporter) {
-  logger.warn(
-    "Email transporter is disabled because mail credentials are missing",
-  );
+  if (!isTest) {
+    logger.warn(
+      "Email transporter is disabled because mail credentials are missing",
+    );
+  }
 } else {
   transporter
     .verify()

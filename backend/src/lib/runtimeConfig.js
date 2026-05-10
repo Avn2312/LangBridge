@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 const DEFAULT_FRONTEND_URL = "http://localhost:5173";
 const DEFAULT_BASE_URL = "http://localhost:3000";
 
@@ -25,68 +27,152 @@ const parseList = (value, fallback) => {
     .filter(Boolean);
 };
 
+const envSchema = z
+  .object({
+    NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+    PORT: z.coerce.number().int().positive().optional(),
+    MONGO_URI: z.string().optional(),
+    JWT_SECRET_KEY: z.string().optional(),
+    SESSION_SECRET: z.string().optional(),
+    BASE_URL: z.string().url().optional(),
+    FRONTEND_URL: z.string().url().optional(),
+    CORS_ORIGINS: z.string().optional(),
+    CORS_ORIGIN: z.string().optional(),
+    REQUEST_BODY_LIMIT: z.string().optional(),
+    METRICS_PORT: z.coerce.number().int().positive().optional(),
+    SESSION_COOKIE_NAME: z.string().optional(),
+    SESSION_COOKIE_SAMESITE: z
+      .enum(["strict", "lax", "none", "Strict", "Lax", "None"])
+      .optional(),
+    SESSION_COOKIE_SECURE: z.string().optional(),
+    SESSION_COOKIE_DOMAIN: z.string().optional(),
+    SESSION_COOKIE_MAX_AGE_MS: z.coerce.number().int().positive().optional(),
+    SESSION_TTL_SECONDS: z.coerce.number().int().positive().optional(),
+    AUTH_RATE_LIMIT_WINDOW_SECONDS: z.coerce.number().int().positive().optional(),
+    AUTH_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().optional(),
+    AUTH_LOCK_WINDOW_SECONDS: z.coerce.number().int().positive().optional(),
+    AUTH_MAX_FAILURES: z.coerce.number().int().positive().optional(),
+    RESEND_RATE_LIMIT_WINDOW_SECONDS: z.coerce.number().int().positive().optional(),
+    RESEND_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().optional(),
+    MESSAGE_RATE_LIMIT_WINDOW_SECONDS: z.coerce.number().int().positive().optional(),
+    MESSAGE_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().optional(),
+    TYPING_RATE_LIMIT_WINDOW_SECONDS: z.coerce.number().int().positive().optional(),
+    TYPING_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().optional(),
+    REDIS_URL: z.string().optional(),
+    REDIS_HOST: z.string().optional(),
+    REDIS_PORT: z.coerce.number().int().positive().optional(),
+    REDIS_PASSWORD: z.string().optional(),
+    KAFKA_ENABLED: z.string().optional(),
+    KAFKA_BROKERS: z.string().optional(),
+    KAFKA_CLIENT_ID: z.string().optional(),
+    KAFKA_GROUP_ID: z.string().optional(),
+    KAFKA_RETRIES: z.coerce.number().int().nonnegative().optional(),
+    AI_AUTO_CORRECTION_EVENTS: z.string().optional(),
+    GOOGLE_CLIENT_ID: z.string().optional(),
+    GOOGLE_CLIENT_SECRET: z.string().optional(),
+    GOOGLE_CALLBACK_URL: z.string().url().optional(),
+  })
+  .superRefine((env, ctx) => {
+    if (env.NODE_ENV !== "production") {
+      return;
+    }
+
+    for (const key of ["MONGO_URI", "JWT_SECRET_KEY", "SESSION_SECRET"]) {
+      if (!env[key]) {
+        ctx.addIssue({
+          code: "custom",
+          path: [key],
+          message: `${key} is required in production.`,
+        });
+      }
+    }
+  });
+
+const parsedEnv = envSchema.safeParse(process.env);
+
+if (!parsedEnv.success) {
+  const details = parsedEnv.error.issues
+    .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
+    .join("; ");
+  throw new Error(`Invalid runtime environment: ${details}`);
+}
+
+export const env = parsedEnv.data;
+
 export const runtimeConfig = {
-  baseUrl: process.env.BASE_URL || DEFAULT_BASE_URL,
-  frontendUrl: process.env.FRONTEND_URL || DEFAULT_FRONTEND_URL,
-  corsOrigins: parseList(process.env.CORS_ORIGINS || process.env.CORS_ORIGIN, [
+  nodeEnv: env.NODE_ENV,
+  baseUrl: env.BASE_URL || DEFAULT_BASE_URL,
+  frontendUrl: env.FRONTEND_URL || DEFAULT_FRONTEND_URL,
+  corsOrigins: parseList(env.CORS_ORIGINS || env.CORS_ORIGIN, [
     DEFAULT_FRONTEND_URL,
   ]),
-  requestBodyLimit: process.env.REQUEST_BODY_LIMIT || "10kb",
+  requestBodyLimit: env.REQUEST_BODY_LIMIT || "10kb",
+  metricsPort: env.METRICS_PORT,
   session: {
-    name: process.env.SESSION_COOKIE_NAME || "lb.sid",
+    name: env.SESSION_COOKIE_NAME || "lb.sid",
     secret:
-      process.env.SESSION_SECRET ||
-      process.env.JWT_SECRET_KEY ||
+      env.SESSION_SECRET ||
+      env.JWT_SECRET_KEY ||
       "dev-session-secret-change-me",
     sameSite:
-      process.env.SESSION_COOKIE_SAMESITE ||
-      (process.env.NODE_ENV === "production" ? "none" : "lax"),
+      env.SESSION_COOKIE_SAMESITE?.toLowerCase() ||
+      (env.NODE_ENV === "production" ? "none" : "lax"),
     secure: parseBoolean(
-      process.env.SESSION_COOKIE_SECURE,
-      process.env.NODE_ENV === "production",
+      env.SESSION_COOKIE_SECURE,
+      env.NODE_ENV === "production",
     ),
-    domain: process.env.SESSION_COOKIE_DOMAIN || undefined,
+    domain: env.SESSION_COOKIE_DOMAIN || undefined,
     maxAgeMs: parseInteger(
-      process.env.SESSION_COOKIE_MAX_AGE_MS,
+      env.SESSION_COOKIE_MAX_AGE_MS,
       7 * 24 * 60 * 60 * 1000,
     ),
-    ttlSeconds: parseInteger(process.env.SESSION_TTL_SECONDS, 7 * 24 * 60 * 60),
+    ttlSeconds: parseInteger(env.SESSION_TTL_SECONDS, 7 * 24 * 60 * 60),
   },
   rateLimit: {
     authWindowSeconds: parseInteger(
-      process.env.AUTH_RATE_LIMIT_WINDOW_SECONDS,
+      env.AUTH_RATE_LIMIT_WINDOW_SECONDS,
       15 * 60,
     ),
-    authMaxRequests: parseInteger(process.env.AUTH_RATE_LIMIT_MAX_REQUESTS, 10),
+    authMaxRequests: parseInteger(env.AUTH_RATE_LIMIT_MAX_REQUESTS, 10),
     authLockWindowSeconds: parseInteger(
-      process.env.AUTH_LOCK_WINDOW_SECONDS,
+      env.AUTH_LOCK_WINDOW_SECONDS,
       15 * 60,
     ),
-    authMaxFailures: parseInteger(process.env.AUTH_MAX_FAILURES, 5),
+    authMaxFailures: parseInteger(env.AUTH_MAX_FAILURES, 5),
     resendWindowSeconds: parseInteger(
-      process.env.RESEND_RATE_LIMIT_WINDOW_SECONDS,
+      env.RESEND_RATE_LIMIT_WINDOW_SECONDS,
       60 * 60,
     ),
     resendMaxRequests: parseInteger(
-      process.env.RESEND_RATE_LIMIT_MAX_REQUESTS,
+      env.RESEND_RATE_LIMIT_MAX_REQUESTS,
       5,
     ),
     messageWindowSeconds: parseInteger(
-      process.env.MESSAGE_RATE_LIMIT_WINDOW_SECONDS,
+      env.MESSAGE_RATE_LIMIT_WINDOW_SECONDS,
       60,
     ),
     messageMaxRequests: parseInteger(
-      process.env.MESSAGE_RATE_LIMIT_MAX_REQUESTS,
+      env.MESSAGE_RATE_LIMIT_MAX_REQUESTS,
       30,
     ),
     typingWindowSeconds: parseInteger(
-      process.env.TYPING_RATE_LIMIT_WINDOW_SECONDS,
+      env.TYPING_RATE_LIMIT_WINDOW_SECONDS,
       10,
     ),
     typingMaxRequests: parseInteger(
-      process.env.TYPING_RATE_LIMIT_MAX_REQUESTS,
+      env.TYPING_RATE_LIMIT_MAX_REQUESTS,
       60,
     ),
+  },
+  kafka: {
+    enabled: parseBoolean(env.KAFKA_ENABLED, false),
+    brokers: parseList(env.KAFKA_BROKERS, ["localhost:9092"]),
+    clientId: env.KAFKA_CLIENT_ID || "langbridge-api",
+    groupId: env.KAFKA_GROUP_ID || "langbridge-worker",
+    retries: parseInteger(env.KAFKA_RETRIES, 3),
+  },
+  ai: {
+    autoCorrectionEvents: parseBoolean(env.AI_AUTO_CORRECTION_EVENTS, false),
   },
 };
 

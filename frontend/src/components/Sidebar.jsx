@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+/* eslint-disable no-unused-vars */
+import React from "react";
 import { Link, useLocation } from "react-router";
 import useAuthUser from "../hooks/useAuthUser.js";
 import {
@@ -6,36 +7,83 @@ import {
   MessageCircle,
   HomeIcon,
   UserIcon,
-  BellIcon,
-  X,
-  Menu,
+  BookOpenCheck,
+  Newspaper,
+  ShieldCheck,
+  UserRound,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
+import { useSocketStore } from "../store/socketStore.js";
 
 const Sidebar = () => {
   const { authUser } = useAuthUser();
   const location = useLocation();
   const currentPath = location.pathname;
-  const [isOpen, setIsOpen] = useState(false);
+  const unreadCounts = useSocketStore((s) => s.unreadCounts);
+
+  const unreadMessageCount = Object.values(unreadCounts).reduce(
+    (total, count) => total + Number(count || 0),
+    0,
+  );
+
+  const isDevOrAdmin =
+    import.meta.env.DEV ||
+    authUser?.role === "admin" ||
+    authUser?.isAdmin === true;
 
   const navLinks = [
-    { path: "/", label: "Home", icon: <HomeIcon className="size-5" /> },
-    { path: "/friends", label: "Friends", icon: <UserIcon className="size-5" /> },
-    { path: "/notifications", label: "Notifications", icon: <BellIcon className="size-5" /> },
+    { path: "/", label: "Home", icon: HomeIcon, match: ["/"] },
+    {
+      path: "/messages",
+      label: "Messages",
+      icon: MessageCircle,
+      count: unreadMessageCount,
+      match: ["/messages", "/chat"],
+    },
+    {
+      path: "/learning",
+      label: "Learning",
+      icon: BookOpenCheck,
+      match: ["/learning"],
+    },
+    {
+      path: "/moments",
+      label: "Moments",
+      icon: Newspaper,
+      match: ["/moments"],
+    },
+    { path: "/friends", label: "Friends", icon: UserIcon, match: ["/friends"] },
+    { path: "/profile", label: "Profile", icon: UserRound, match: ["/profile"] },
   ];
 
-  const toggleSidebar = () => setIsOpen((prev) => !prev);
+  const isLinkActive = (link) =>
+    link.match.some((path) =>
+      path === "/" ? currentPath === "/" : currentPath.startsWith(path),
+    );
+
+  const renderBadge = (count, mobile = false) =>
+    count > 0 ? (
+      <span
+        className={
+          mobile
+            ? "absolute right-4 top-2 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-cyan-300 px-1 text-[9px] font-bold text-slate-950"
+            : "ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-cyan-300 px-1.5 text-[10px] font-bold text-slate-950"
+        }
+      >
+        {count > 9 ? "9+" : count}
+      </span>
+    ) : null;
 
   return (
     <>
       {/* ========= DESKTOP SIDEBAR ========= */}
-      <aside className="hidden lg:flex flex-col justify-between w-64 h-screen sticky top-0 bg-gradient-to-b from-[#0C1B2E] via-[#0E213A] to-[#0A1525] text-gray-100 border-r border-blue-500/10 backdrop-blur-xl shadow-[inset_0_0_15px_rgba(0,0,0,0.4)]">
+      <aside className="hidden h-screen w-64 shrink-0 flex-col justify-between border-r border-blue-500/10 bg-gradient-to-b from-[#0C1B2E] via-[#0E213A] to-[#0A1525] text-gray-100 shadow-[inset_0_0_15px_rgba(0,0,0,0.4)] lg:flex">
         {/* =================== LOGO SECTION =================== */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="p-6 border-b border-blue-500/10"
+          className="border-b border-blue-500/10 p-6"
         >
           <Link to="/" className="flex items-center gap-4 group">
             <motion.div
@@ -71,9 +119,10 @@ const Sidebar = () => {
         </motion.div>
 
         {/* =================== NAV LINKS =================== */}
-        <nav className="flex-1 p-5 space-y-2">
+        <nav className="flex-1 space-y-2 p-5" aria-label="Primary navigation">
           {navLinks.map((link, index) => {
-            const isActive = currentPath === link.path;
+            const isActive = isLinkActive(link);
+            const Icon = link.icon;
             return (
               <motion.div
                 key={link.path}
@@ -83,32 +132,60 @@ const Sidebar = () => {
               >
                 <Link
                   to={link.path}
-                  className={`flex items-center gap-3 w-full px-4 py-2.5 rounded-xl transition-all duration-300 ${
+                  aria-current={isActive ? "page" : undefined}
+                  className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 ${
                     isActive
-                      ? "bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-lg shadow-blue-600/30"
-                      : "text-gray-300 hover:text-white hover:bg-blue-500/10"
+                      ? "bg-cyan-400/15 text-cyan-100 shadow-[inset_3px_0_0_#67e8f9]"
+                      : "text-gray-300 hover:bg-blue-500/10 hover:text-white"
                   }`}
                 >
-                  {link.icon}
-                  <span className="font-medium text-sm">{link.label}</span>
+                  <Icon className="size-5" />
+                  <span>{link.label}</span>
+                  {renderBadge(link.count)}
                 </Link>
               </motion.div>
             );
           })}
         </nav>
 
+        {isDevOrAdmin && (
+          <div className="px-5 pb-4">
+            <Link
+              to="/moderation"
+              className={`flex items-center gap-3 rounded-xl px-4 py-2.5 text-xs font-semibold transition-colors ${
+                currentPath.startsWith("/moderation")
+                  ? "bg-cyan-400/15 text-cyan-100"
+                  : "text-slate-400 hover:bg-blue-500/10 hover:text-slate-100"
+              }`}
+            >
+              <ShieldCheck className="size-4" />
+              Admin tools
+            </Link>
+          </div>
+        )}
+
         {/* =================== PROFILE =================== */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="p-5 border-t border-blue-500/10 mt-auto"
+          className="mt-auto border-t border-blue-500/10 p-5"
         >
-          <div className="flex items-center gap-3">
-            <div className="relative group">
+          <Link
+            to="/profile"
+            className={`flex items-center gap-3 rounded-xl p-2 transition-colors duration-200 ${
+              currentPath.startsWith("/profile")
+                ? "bg-cyan-400/15"
+                : "hover:bg-blue-500/10"
+            }`}
+          >
+            <div className="relative group shrink-0">
               <div className="w-11 h-11 rounded-full overflow-hidden ring-2 ring-blue-400/30 group-hover:ring-cyan-400/60 transition-all duration-300">
                 <img
-                  src={authUser?.profilePic}
+                  src={
+                    authUser?.profilePic ||
+                    "https://api.dicebear.com/7.x/avataaars/svg?seed=fallback"
+                  }
                   alt="User Avatar"
                   className="w-full h-full object-cover"
                 />
@@ -116,105 +193,44 @@ const Sidebar = () => {
               <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-400 rounded-full ring-2 ring-[#0C1B2E]" />
             </div>
 
-            <div className="flex flex-col">
+            <div className="min-w-0 flex flex-col">
               <p className="font-semibold text-sm text-white">
                 {authUser?.fullName || "User"}
               </p>
-              <p className="text-xs text-emerald-400 flex items-center gap-1">
-                <span className="size-2 rounded-full bg-emerald-400 inline-block" />
-                Online
-              </p>
+              <p className="text-xs text-emerald-400">Online</p>
             </div>
-          </div>
+          </Link>
         </motion.div>
       </aside>
 
-      {/* ========= MOBILE SIDEBAR TOGGLE BUTTON ========= */}
-      <button
-        onClick={toggleSidebar}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-[#0E213A]/80 text-white rounded-lg shadow-lg backdrop-blur-md"
+      {/* ========= MOBILE BOTTOM NAV ========= */}
+      <nav
+        className="fixed inset-x-0 bottom-0 z-50 border-t border-blue-300/15 bg-[#071524]/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 shadow-[0_-12px_30px_rgba(0,0,0,0.35)] backdrop-blur-xl lg:hidden"
+        aria-label="Primary navigation"
       >
-        <Menu size={22} />
-      </button>
-
-      {/* ========= MOBILE SIDEBAR DRAWER ========= */}
-      <AnimatePresence>
-        {isOpen && (
-          <>
-            {/* BACKDROP */}
-            <motion.div
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={toggleSidebar}
-            />
-            {/* SIDEBAR PANEL */}
-            <motion.aside
-              initial={{ x: "-100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "-100%" }}
-              transition={{ type: "spring", stiffness: 120 }}
-              className="fixed top-0 left-0 h-full w-64 bg-gradient-to-b from-[#0C1B2E] via-[#0E213A] to-[#0A1525] text-gray-100 border-r border-blue-500/10 shadow-lg z-50 flex flex-col justify-between"
-            >
-              <div className="flex items-center justify-between p-5 border-b border-blue-500/10">
-                <Link
-                  to="/"
-                  className="flex items-center gap-3"
-                  onClick={toggleSidebar}
-                >
-                  <Globe size={32} className="text-[#4fc3f7]" />
-                  <span className="text-xl font-semibold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
-                    Lang<span className="text-white">Bridge</span>
-                  </span>
-                </Link>
-                <button onClick={toggleSidebar}>
-                  <X size={22} className="text-gray-300 hover:text-white" />
-                </button>
-              </div>
-
-              <nav className="flex-1 p-5 space-y-2">
-                {navLinks.map((link) => {
-                  const isActive = currentPath === link.path;
-                  return (
-                    <Link
-                      key={link.path}
-                      to={link.path}
-                      onClick={toggleSidebar}
-                      className={`flex items-center gap-3 w-full px-4 py-2.5 rounded-xl transition-all duration-300 ${
-                        isActive
-                          ? "bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-lg shadow-blue-600/30"
-                          : "text-gray-300 hover:text-white hover:bg-blue-500/10"
-                      }`}
-                    >
-                      {link.icon}
-                      <span className="font-medium text-sm">{link.label}</span>
-                    </Link>
-                  );
-                })}
-              </nav>
-
-              <div className="p-5 border-t border-blue-500/10">
-                <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-full overflow-hidden ring-2 ring-blue-400/30">
-                    <img
-                      src={authUser?.profilePic}
-                      alt="User Avatar"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-sm text-white">
-                      {authUser?.fullName || "User"}
-                    </p>
-                    <p className="text-xs text-emerald-400">Online</p>
-                  </div>
-                </div>
-              </div>
-            </motion.aside>
-          </>
-        )}
-      </AnimatePresence>
+        <div className="grid grid-cols-6 gap-1">
+          {navLinks.map((link) => {
+            const isActive = isLinkActive(link);
+            const Icon = link.icon;
+            return (
+              <Link
+                key={link.path}
+                to={link.path}
+                aria-current={isActive ? "page" : undefined}
+                className={`relative flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[11px] font-semibold transition-colors ${
+                  isActive
+                    ? "bg-cyan-400/15 text-cyan-100"
+                    : "text-slate-400 hover:bg-white/5 hover:text-white"
+                }`}
+              >
+                <Icon className="size-5" />
+                <span className="max-w-full truncate">{link.label}</span>
+                {renderBadge(link.count, true)}
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
     </>
   );
 };

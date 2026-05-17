@@ -8,24 +8,24 @@ import { fileURLToPath } from "url";
 import session from "express-session";
 import { RedisStore } from "connect-redis";
 import passport from "passport";
-import { sessionRedisClient } from "./lib/redis.js";
-import { runtimeConfig } from "./lib/runtimeConfig.js";
-import { sendError } from "./lib/apiResponse.js";
-import { getLiveness, getReadiness } from "./lib/health.js";
-import { renderMetrics } from "./lib/metrics.js";
-import { traceContextMiddleware } from "./lib/tracing.js";
-import { requestLogger } from "./middlewares/requestLogger.js";
-import { errorHandler } from "./middlewares/errorHandler.js";
+import { getSessionRedisClient } from "./infrastructure/redis/session.store.js";
+import { runtimeConfig } from "./config/env.js";
+import { sendError } from "./core/http/api-response.js";
+import { getLiveness, getReadiness } from "./core/observability/health.js";
+import { renderMetrics } from "./core/observability/metrics.js";
+import { traceContextMiddleware } from "./core/observability/tracing.js";
+import { requestLogger } from "./core/middleware/request-logger.js";
+import { errorHandler } from "./core/errors/error-handler.js";
 
 // Initialize Passport strategies (Google OAuth)
-import "./lib/passport.js";
+import "./modules/auth/auth.passport.js";
 
 // Import route handlers
-import authRoutes from "./routes/auth.route.js";
-import userRoutes from "./routes/user.route.js";
-import messageRoutes from "./routes/message.route.js";
-import learningRoutes from "./routes/learning.route.js";
-import moderationRoutes from "./routes/moderation.route.js";
+import authRoutes from "./modules/auth/auth.routes.js";
+import userRoutes from "./modules/users/user.routes.js";
+import chatRoutes from "./modules/chat/chat.routes.js";
+import learningRoutes from "./modules/learning/learning.routes.js";
+import moderationRoutes from "./modules/moderation/moderation.routes.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -36,6 +36,7 @@ const allowedOrigins = new Set([
   ...runtimeConfig.corsOrigins,
   runtimeConfig.frontendUrl,
 ]);
+const sessionRedisClient = getSessionRedisClient();
 
 const app = express();
 
@@ -129,7 +130,7 @@ app.use(passport.session());
 // ──── API ROUTES ────
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
-app.use("/api/messages", messageRoutes);
+app.use("/api/messages", chatRoutes);
 app.use("/api/learning", learningRoutes);
 app.use("/api/moderation", moderationRoutes);
 

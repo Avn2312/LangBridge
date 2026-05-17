@@ -1,6 +1,6 @@
 import "dotenv/config";
 import nodemailer from "nodemailer";
-import { logger } from "../lib/logger.js";
+import { logger } from "../core/observability/logger.js";
 
 const isTest = process.env.NODE_ENV === "test";
 const mailUser = process.env.GOOGLE_USER;

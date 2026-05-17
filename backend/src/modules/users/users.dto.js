@@ -1,0 +1,16 @@
+export const serializePublicUserProfile = ({ user, blockState }) => ({
+  _id: user._id,
+  fullName: user.fullName,
+  profilePic: user.profilePic,
+  nativeLanguage: user.nativeLanguage,
+  learningLanguage: user.learningLanguage,
+  timezone: user.timezone,
+  proficiencyLevel: user.proficiencyLevel,
+  interests: user.interests || [],
+  bio: user.bio,
+  location: user.location,
+  isOnboarded: user.isOnboarded,
+  verified: user.verified,
+  isBlockedByMe: blockState.isBlockedByViewer,
+  hasBlockedMe: blockState.hasBlockedViewer,
+});

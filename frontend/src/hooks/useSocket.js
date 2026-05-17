@@ -8,7 +8,9 @@ import {
   removeOfflineMessage,
 } from "../lib/offlineOutbox.js";
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+const BACKEND_URL =
+  import.meta.env.VITE_BACKEND_URL ||
+  (import.meta.env.DEV ? "http://localhost:3000" : window.location.origin);
 const OUTBOX_ACK_TIMEOUT_MS = Number(
   import.meta.env.VITE_MESSAGE_ACK_TIMEOUT_MS || 2500,
 );

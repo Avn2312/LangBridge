@@ -1,9 +1,9 @@
 import "dotenv/config";
 import http from "http";
 import app from "./src/app.js";
-import { connectDB } from "./src/lib/db.js";
-import { initSocket } from "./src/lib/socket.js";
-import { logger } from "./src/lib/logger.js";
+import { connectDB } from "./src/infrastructure/database/mongoose.js";
+import { initSocket } from "./src/infrastructure/realtime/socket.js";
+import { logger } from "./src/core/observability/logger.js";
 
 const PORT = process.env.PORT || 3000;
 

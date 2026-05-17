@@ -1,19 +1,17 @@
 import "dotenv/config";
 import http from "http";
-import { eventTopics } from "../lib/events.js";
-import { getKafka } from "../lib/kafka.js";
-import { logger } from "../lib/logger.js";
-import { connectDB } from "../lib/db.js";
-import { createCorrection } from "../lib/languageAssist.js";
+import { eventTopics } from "../infrastructure/messaging/event-topics.js";
+import { getKafka } from "../infrastructure/messaging/kafka.client.js";
+import { logger } from "../core/observability/logger.js";
+import { connectDB } from "../infrastructure/database/mongoose.js";
 import {
   incrementKafkaEvent,
   observeKafkaConsumerLag,
   renderMetrics,
-} from "../lib/metrics.js";
-import { redis } from "../lib/redis.js";
-import { runtimeConfig } from "../lib/runtimeConfig.js";
-import LearningActivity from "../models/LearningActivity.js";
-import Message from "../models/Message.js";
+} from "../core/observability/metrics.js";
+import { claimIdempotencyKey } from "../infrastructure/redis/idempotency.store.js";
+import { runtimeConfig } from "../config/env.js";
+import { eventHandlers } from "./handlers/index.js";
 
 const PROCESSED_TTL_SECONDS = 7 * 24 * 60 * 60;
 const topics = Object.values(eventTopics);
@@ -63,85 +61,7 @@ const claimEvent = async (eventId) => {
   }
 
   const key = `langbridge:kafka:processed:${eventId}`;
-  const result = await redis.set(key, "1", "EX", PROCESSED_TTL_SECONDS, "NX");
-  return result === "OK";
-};
-
-const handlers = {
-  [eventTopics.userSignedUp]: async (event) => {
-    logger.info("Worker handled signup analytics event", {
-      eventId: event.eventId,
-      userId: event.payload?.userId,
-      provider: event.payload?.provider,
-    });
-  },
-  [eventTopics.friendRequestCreated]: async (event) => {
-    logger.info("Worker handled friend request event", {
-      eventId: event.eventId,
-      requestId: event.payload?.requestId,
-      recipientId: event.payload?.recipientId,
-    });
-  },
-  [eventTopics.messageSent]: async (event) => {
-    logger.info("Worker handled message analytics event", {
-      eventId: event.eventId,
-      messageId: event.payload?.messageId,
-      attachmentCount: event.payload?.attachmentCount,
-    });
-  },
-  [eventTopics.messageRead]: async (event) => {
-    logger.info("Worker handled read receipt analytics event", {
-      eventId: event.eventId,
-      readerId: event.payload?.readerId,
-      messageCount: event.payload?.messageCount,
-    });
-  },
-  [eventTopics.userReported]: async (event) => {
-    logger.warn("Worker handled moderation event", {
-      eventId: event.eventId,
-      reportId: event.payload?.reportId,
-      reportedId: event.payload?.reportedId,
-    });
-  },
-  [eventTopics.notificationSend]: async (event) => {
-    logger.info("Worker handled notification event", {
-      eventId: event.eventId,
-      userId: event.payload?.userId,
-      type: event.payload?.type,
-      channel: event.payload?.channel,
-    });
-  },
-  [eventTopics.aiCorrectionRequested]: async (event) => {
-    const message = event.payload?.messageId
-      ? await Message.findById(event.payload.messageId).lean()
-      : null;
-    const correction = createCorrection({
-      text: message?.text || event.payload?.text,
-      tone: "friendly",
-    });
-
-    if (event.payload?.userId && correction.corrected) {
-      await LearningActivity.create({
-        user: event.payload.userId,
-        partner: event.payload?.receiverId || null,
-        message: event.payload?.messageId || null,
-        type: "correction",
-        sourceText: correction.original,
-        resultText: correction.corrected,
-        metadata: {
-          source: "kafka_worker",
-          explanation: correction.explanation,
-          changes: correction.changes,
-        },
-      });
-    }
-
-    logger.info("Worker handled AI correction request", {
-      eventId: event.eventId,
-      messageId: event.payload?.messageId,
-      userId: event.payload?.userId,
-    });
-  },
+  return claimIdempotencyKey({ key, ttlSeconds: PROCESSED_TTL_SECONDS });
 };
 
 const startWorker = async () => {
@@ -201,7 +121,7 @@ const startWorker = async () => {
         return;
       }
 
-      const handler = handlers[topic];
+      const handler = eventHandlers[topic];
       if (!handler) {
         incrementKafkaEvent({ topic, outcome: "unhandled" });
         logger.warn("Kafka worker has no handler for topic", { topic });

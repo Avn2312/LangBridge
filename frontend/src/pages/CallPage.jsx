@@ -491,8 +491,8 @@ const CallPage = () => {
   );
 
   return (
-    <main className="min-h-screen bg-[#070B12] text-white">
-      <div className="flex min-h-screen flex-col">
+    <main className="min-h-dvh bg-[#070B12] text-white">
+      <div className="flex min-h-dvh flex-col">
         <header className="flex items-center justify-between border-b border-white/10 px-4 py-3 sm:px-6">
           <div className="min-w-0">
             <p className="text-xs font-medium uppercase tracking-[0.24em] text-cyan-200/70">

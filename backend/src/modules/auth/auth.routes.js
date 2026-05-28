@@ -1,4 +1,5 @@
 import express from "express";
+import multer from "multer";
 import {
   signup,
   login,
@@ -7,6 +8,7 @@ import {
   logout,
   onboard,
   getMe,
+  uploadOnboardingPhoto,
 } from "./auth.controller.js";
 import { protectRoute } from "../../core/middleware/auth.middleware.js";
 import { generateToken, setAuthCookie } from "./auth.tokens.js";
@@ -23,6 +25,12 @@ import {
 } from "./auth.validators.js";
 
 const router = express.Router();
+const profilePhotoUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024,
+  },
+});
 
 const signupLimiter = createRateLimitMiddleware({
   keyPrefix: "rate:auth:signup",
@@ -90,6 +98,13 @@ router.post(
   authMutationLimiter,
   onboardingValidation,
   onboard,
+);
+router.post(
+  "/onboarding/photo",
+  protectRoute,
+  authMutationLimiter,
+  profilePhotoUpload.single("file"),
+  uploadOnboardingPhoto,
 );
 router.post(
   "/resend-verification",

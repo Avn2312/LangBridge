@@ -39,3 +39,34 @@ export async function uploadChatAttachment(file) {
     size: file.size || result.bytes || 0,
   };
 }
+
+export async function uploadProfilePhoto(file) {
+  if (!file) {
+    const error = new Error("No image provided.");
+    error.statusCode = 400;
+    error.code = "NO_PROFILE_PHOTO";
+    throw error;
+  }
+
+  if (!file.mimetype?.startsWith("image/")) {
+    const error = new Error("Profile photo must be an image.");
+    error.statusCode = 400;
+    error.code = "PROFILE_PHOTO_INVALID_TYPE";
+    throw error;
+  }
+
+  const result = await uploadBuffer(file.buffer, {
+    resource_type: "image",
+    folder: "langbridge/profile-photos",
+    transformation: [
+      { width: 512, height: 512, crop: "fill", gravity: "face:auto" },
+      { quality: "auto", fetch_format: "auto" },
+    ],
+  });
+
+  return {
+    url: result.secure_url,
+    filename: file.originalname || "",
+    size: file.size || result.bytes || 0,
+  };
+}

@@ -10,6 +10,7 @@ import {
   signupUser,
   verifyUserEmail,
 } from "./auth.service.js";
+import { uploadProfilePhoto } from "../media/media.service.js";
 
 const sendServiceError = (res, error, fallbackMessage = "Internal Server Error.") =>
   sendError(res, error.statusCode || 500, error.message || fallbackMessage, {
@@ -101,6 +102,20 @@ export async function onboard(req, res) {
   } catch (error) {
     logger.error("Onboarding error", error);
     return sendServiceError(res, error);
+  }
+}
+
+export async function uploadOnboardingPhoto(req, res) {
+  try {
+    const photo = await uploadProfilePhoto(req.file);
+
+    return res.status(201).json({
+      success: true,
+      photo,
+    });
+  } catch (error) {
+    logger.error("Profile photo upload error", error);
+    return sendServiceError(res, error, "Could not upload profile photo.");
   }
 }
 

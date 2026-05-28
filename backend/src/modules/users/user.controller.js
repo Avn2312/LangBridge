@@ -1,6 +1,6 @@
 import { logger } from "../../core/observability/logger.js";
 import { sendError } from "../../core/http/api-response.js";
-import { getUserProfile } from "./users.service.js";
+import { getUserProfile, updateMyProfile } from "./users.service.js";
 
 const sendControllerError = (res, error) =>
   sendError(
@@ -22,6 +22,20 @@ export async function getUserByIdController(req, res) {
     return res.status(200).json(profile);
   } catch (error) {
     logger.error("Error in getUserById controller", error);
+    return sendControllerError(res, error);
+  }
+}
+
+export async function updateMyProfileController(req, res) {
+  try {
+    const payload = await updateMyProfile({
+      userId: req.user._id,
+      body: req.body,
+    });
+
+    return res.status(200).json(payload);
+  } catch (error) {
+    logger.error("Error in updateMyProfile controller", error);
     return sendControllerError(res, error);
   }
 }

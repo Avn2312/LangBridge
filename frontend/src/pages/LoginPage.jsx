@@ -37,16 +37,12 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="h-screen overflow-hidden flex items-center justify-center bg-gradient-to-br from-[#0f4c75] via-[#1676c4] to-[#14c9cb] p-3 sm:p-4 relative">
-      {/* Decorative gradient orbs */}
-      <div className="absolute top-[-10%] left-[-10%] w-72 h-72 bg-white/20 rounded-full blur-3xl" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-80 h-80 bg-[#00c6ff]/20 rounded-full blur-3xl" />
-
+    <div className="relative flex min-h-dvh items-center justify-center overflow-y-auto bg-[radial-gradient(circle_at_18%_18%,rgba(20,201,203,0.24),transparent_30%),radial-gradient(circle_at_82%_82%,rgba(22,118,196,0.24),transparent_34%),linear-gradient(135deg,#071524_0%,#0A1A2F_42%,#0F2E52_100%)] p-3 sm:p-4">
       <motion.div
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
-        className="flex flex-col lg:flex-row w-full h-full max-h-[920px] max-w-5xl rounded-3xl overflow-hidden shadow-2xl bg-white/10 backdrop-blur-md border border-white/20"
+        className="my-4 flex w-full max-w-5xl flex-col overflow-hidden rounded-3xl border border-cyan-300/15 bg-[#0B1728]/88 shadow-2xl shadow-cyan-950/40 backdrop-blur-xl lg:min-h-[680px] lg:flex-row"
       >
         {/* Left Side - Login Form */}
         <div className="w-full lg:w-1/2 p-4 sm:p-5 lg:p-6 flex flex-col justify-center text-white">
@@ -68,7 +64,7 @@ const LoginPage = () => {
 
             <div>
               <h1 className="text-2xl font-semibold">
-                Lang<span className="font-bold text-[#06B6D4]">Bridge</span>
+                Lang<span className="font-bold text-cyan-300">Bridge</span>
               </h1>
               <p className="text-xs text-gray-200">
                 Connecting the world, one language at a time
@@ -101,7 +97,7 @@ const LoginPage = () => {
               <input
                 type="email"
                 placeholder="e.g. johndoe@gmail.com"
-                className="w-full px-4 py-2 bg-white/20 border border-white/30 rounded-lg placeholder-gray-300 text-white focus:ring-2 focus:ring-[#06B6D4] outline-none transition-all"
+                className="w-full rounded-lg border border-cyan-200/15 bg-slate-950/55 px-5 py-2.5 text-white outline-none transition-all placeholder:text-slate-500 focus:border-cyan-300/60 focus:ring-2 focus:ring-cyan-300/30"
                 value={loginData.email}
                 onChange={(e) =>
                   setLoginData({ ...loginData, email: e.target.value })
@@ -118,7 +114,7 @@ const LoginPage = () => {
                 <input
                   type={showPassword ? "text" : "password"}
                   placeholder="e.g. password"
-                  className="w-full px-4 py-2 pr-11 bg-white/20 border border-white/30 rounded-lg placeholder-gray-300 text-white focus:ring-2 focus:ring-[#06B6D4] outline-none transition-all"
+                  className="w-full rounded-lg border border-cyan-200/15 bg-slate-950/55 px-5 py-2.5 pr-12 text-white outline-none transition-all placeholder:text-slate-500 focus:border-cyan-300/60 focus:ring-2 focus:ring-cyan-300/30"
                   value={loginData.password}
                   onChange={(e) =>
                     setLoginData({ ...loginData, password: e.target.value })
@@ -139,7 +135,7 @@ const LoginPage = () => {
             <button
               type="submit"
               disabled={isPending}
-              className="w-full h-10 rounded-lg bg-[#06B6D4]/90 hover:bg-[#06B6D4] text-white font-medium transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-[#06B6D4]/30"
+              className="flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-cyan-300 font-semibold text-slate-950 shadow-lg shadow-cyan-500/20 transition-all duration-200 hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-70"
             >
               {isPending ? (
                 <>
@@ -192,7 +188,7 @@ const LoginPage = () => {
               Don't have an account?{" "}
               <Link
                 to="/signup"
-                className="text-[#06B6D4] font-semibold hover:underline"
+                className="font-semibold text-cyan-200 underline-offset-4 hover:text-white hover:underline"
               >
                 Create Account
               </Link>
@@ -205,7 +201,7 @@ const LoginPage = () => {
           initial={{ opacity: 0, x: 40 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.9 }}
-          className="hidden lg:flex w-1/2 items-center justify-center bg-white/10 backdrop-blur-lg border-l border-white/20"
+          className="hidden w-1/2 items-center justify-center border-l border-cyan-300/10 bg-gradient-to-br from-cyan-500/10 via-blue-500/10 to-transparent backdrop-blur-lg lg:flex"
         >
           <div className="text-center text-white px-5 py-5 space-y-3 max-w-md">
             <motion.img

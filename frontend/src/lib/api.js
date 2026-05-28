@@ -33,6 +33,19 @@ export const completeOnboarding = async (userData) => {
   return response.data;
 };
 
+export const uploadProfilePhoto = async (file) => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await axiosInstance.post("/auth/onboarding/photo", formData);
+  return response.data.photo;
+};
+
+export const updateMyProfile = async (profileData) => {
+  const response = await axiosInstance.patch("/users/me", profileData);
+  return response.data;
+};
+
 export const resendVerificationEmail = async () => {
   const response = await axiosInstance.post("/auth/resend-verification");
   return response.data;

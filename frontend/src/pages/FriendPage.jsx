@@ -71,8 +71,8 @@ const FriendPage = () => {
   // ── Verification gate ───────────────────────────────────────────────────────
   if (!isVerified) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-b from-[#0a1520] to-[#0c1b2e]">
-        <div className="max-w-md rounded-2xl border border-amber-300/40 bg-amber-100/95 p-6 text-amber-900 text-center">
+      <div className="lb-page-shell flex items-center justify-center bg-gradient-to-b from-[#0a1520] to-[#0c1b2e]">
+        <div className="max-w-md rounded-2xl border border-amber-300/40 bg-amber-100/95 p-6 text-center text-amber-900">
           <h2 className="text-xl font-semibold">Email verification required</h2>
           <p className="mt-2 text-sm">
             Verify your email to manage friends and requests.

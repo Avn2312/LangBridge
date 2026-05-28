@@ -5,6 +5,7 @@ import {
 } from "../../core/middleware/auth.middleware.js";
 import {
   getUserByIdController,
+  updateMyProfileController,
 } from "./user.controller.js";
 import { getRecommendations } from "../matching/matching.controller.js";
 import { recommendationsQueryValidation } from "../matching/matching.validators.js";
@@ -24,7 +25,10 @@ import {
   reportUserController,
 } from "../moderation/moderation.user-actions.controller.js";
 import { reportUserValidation } from "../moderation/moderation.validators.js";
-import { userIdParamValidation } from "./user.validators.js";
+import {
+  updateProfileValidation,
+  userIdParamValidation,
+} from "./user.validators.js";
 
 const router = express.Router();
 
@@ -36,6 +40,7 @@ router.use(protectRoute);
 
 router.get("/", recommendationsQueryValidation, getRecommendations);
 router.get("/friends", friendshipListQueryValidation, getMyFriends);
+router.patch("/me", updateProfileValidation, updateMyProfileController);
 
 router.post(
   "/follow/:id",

@@ -87,8 +87,8 @@ const NotificationPage = () => {
 
   if (!isVerified) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#0d1b2a] via-[#1b263b] to-[#0d1b2a] text-[#e2e8f0] py-12 px-4 sm:px-8">
-        <div className="container mx-auto max-w-4xl">
+      <div className="lb-page-shell bg-gradient-to-b from-[#0d1b2a] via-[#1b263b] to-[#0d1b2a] text-[#e2e8f0]">
+        <div className="mx-auto max-w-4xl">
           <div className="rounded-2xl border border-amber-300/40 bg-amber-100/95 p-6 text-amber-900">
             <h2 className="text-xl font-semibold">
               Email verification required

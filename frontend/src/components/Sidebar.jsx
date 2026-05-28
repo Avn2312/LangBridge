@@ -8,7 +8,6 @@ import {
   HomeIcon,
   UserIcon,
   BookOpenCheck,
-  Newspaper,
   ShieldCheck,
   UserRound,
 } from "lucide-react";
@@ -46,15 +45,13 @@ const Sidebar = () => {
       icon: BookOpenCheck,
       match: ["/learning"],
     },
-    {
-      path: "/moments",
-      label: "Moments",
-      icon: Newspaper,
-      match: ["/moments"],
-    },
     { path: "/friends", label: "Friends", icon: UserIcon, match: ["/friends"] },
     { path: "/profile", label: "Profile", icon: UserRound, match: ["/profile"] },
   ];
+
+  const mobileNavLinks = navLinks.filter((link) =>
+    ["/", "/messages", "/learning", "/friends", "/profile"].includes(link.path),
+  );
 
   const isLinkActive = (link) =>
     link.match.some((path) =>
@@ -77,7 +74,7 @@ const Sidebar = () => {
   return (
     <>
       {/* ========= DESKTOP SIDEBAR ========= */}
-      <aside className="hidden h-screen w-64 shrink-0 flex-col justify-between border-r border-blue-500/10 bg-gradient-to-b from-[#0C1B2E] via-[#0E213A] to-[#0A1525] text-gray-100 shadow-[inset_0_0_15px_rgba(0,0,0,0.4)] lg:flex">
+      <aside className="hidden h-full w-64 shrink-0 flex-col justify-between border-r border-blue-500/10 bg-gradient-to-b from-[#0C1B2E] via-[#0E213A] to-[#0A1525] text-gray-100 shadow-[inset_0_0_15px_rgba(0,0,0,0.4)] lg:flex">
         {/* =================== LOGO SECTION =================== */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -208,8 +205,8 @@ const Sidebar = () => {
         className="fixed inset-x-0 bottom-0 z-50 border-t border-blue-300/15 bg-[#071524]/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 shadow-[0_-12px_30px_rgba(0,0,0,0.35)] backdrop-blur-xl lg:hidden"
         aria-label="Primary navigation"
       >
-        <div className="grid grid-cols-6 gap-1">
-          {navLinks.map((link) => {
+        <div className="mx-auto grid max-w-md grid-cols-5 gap-1">
+          {mobileNavLinks.map((link) => {
             const isActive = isLinkActive(link);
             const Icon = link.icon;
             return (

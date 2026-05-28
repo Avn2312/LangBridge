@@ -257,7 +257,7 @@ const ChatPage = () => {
   // ── Guard: email not verified ──────────────────────────────────────────────
   if (!isVerified) {
     return (
-      <div className="h-[93vh] flex items-center justify-center px-4">
+      <div className="flex min-h-dvh items-center justify-center px-4">
         <div className="max-w-md rounded-2xl border border-amber-300/60 bg-amber-50 p-6 text-center text-amber-900">
           <h2 className="text-xl font-semibold">Email verification required</h2>
           <p className="mt-2 text-sm">
@@ -280,7 +280,7 @@ const ChatPage = () => {
     .join(" -> ");
 
   return (
-    <div className="flex h-screen flex-col bg-gradient-to-b from-[#08131F] via-[#0B1828] to-[#0C1B2E]">
+    <div className="flex h-dvh flex-col bg-gradient-to-b from-[#08131F] via-[#0B1828] to-[#0C1B2E]">
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <header className="flex flex-shrink-0 items-center gap-3 border-b border-blue-500/10 bg-[#0A1525]/85 px-4 py-3 backdrop-blur-xl">
         <button
@@ -572,7 +572,7 @@ const ChatPage = () => {
                     onChange={(event) => setCorrectedText(event.target.value)}
                     rows={4}
                     maxLength={2000}
-                    className="mt-1 w-full resize-none rounded-lg border border-cyan-400/20 bg-slate-950/50 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300"
+                    className="mt-1 w-full resize-none rounded-lg border border-cyan-400/20 bg-slate-950/50 px-4 py-3 text-sm text-white outline-none focus:border-cyan-300"
                     required
                   />
                 </div>
@@ -590,7 +590,7 @@ const ChatPage = () => {
                     onChange={(event) => setCorrectionNote(event.target.value)}
                     rows={2}
                     maxLength={500}
-                    className="mt-1 w-full resize-none rounded-lg border border-slate-700 bg-slate-950/40 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300"
+                    className="mt-1 w-full resize-none rounded-lg border border-slate-700 bg-slate-950/40 px-4 py-3 text-sm text-white outline-none focus:border-cyan-300"
                     placeholder="Optional"
                   />
                 </div>

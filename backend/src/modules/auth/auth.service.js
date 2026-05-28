@@ -82,9 +82,17 @@ const recordLoginFailure = async (bruteForceKey) => {
 export async function signupUser({ email, password, fullName }) {
   const existingUser = await findUserByEmail(email);
   if (existingUser) {
+    if (existingUser.provider === "google" && !existingUser.password) {
+      throw createAuthError(
+        "This email is already registered with Google. Please continue with Google to sign in.",
+        409,
+        "GOOGLE_ACCOUNT_EXISTS",
+      );
+    }
+
     throw createAuthError(
-      "Email already exists, please use a different one.",
-      400,
+      "An account with this email already exists. Please sign in instead.",
+      409,
       "EMAIL_ALREADY_EXISTS",
     );
   }

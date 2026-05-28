@@ -6,3 +6,16 @@ const publicProfileFields =
 export function findPublicUserProfileById(userId) {
   return User.findById(userId).select(publicProfileFields);
 }
+
+export function updateUserProfileById(userId, profile) {
+  return User.findByIdAndUpdate(
+    userId,
+    {
+      $set: profile,
+    },
+    {
+      new: true,
+      runValidators: true,
+    },
+  ).select(publicProfileFields);
+}

@@ -1,8 +1,8 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import useAuthUser from "../hooks/useAuthUser";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { completeOnboarding } from "../lib/api.js";
+import { completeOnboarding, uploadProfilePhoto } from "../lib/api.js";
 import {
   CameraIcon,
   CheckCircleIcon,
@@ -13,6 +13,7 @@ import {
   MapPinIcon,
   MessageCircleIcon,
   ShuffleIcon,
+  UploadIcon,
   UserRoundIcon,
 } from "lucide-react";
 import { LANGUAGES } from "../constants";
@@ -45,6 +46,8 @@ const splitInterests = (value) =>
 const OnboardingPage = () => {
   const { authUser } = useAuthUser();
   const queryClient = useQueryClient();
+  const fileInputRef = useRef(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 
   const [formState, setFormState] = useState({
     fullName: authUser?.fullName || "",
@@ -104,8 +107,39 @@ const OnboardingPage = () => {
     toast.success("Avatar changed successfully.");
   };
 
+  const handlePhotoUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please choose an image file.");
+      event.target.value = "";
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Profile photo must be 5 MB or smaller.");
+      event.target.value = "";
+      return;
+    }
+
+    setIsUploadingPhoto(true);
+    try {
+      const photo = await uploadProfilePhoto(file);
+      updateField("profilePic", photo.url);
+      toast.success("Profile photo uploaded.");
+    } catch (error) {
+      toast.error(
+        error?.response?.data?.message || "Could not upload profile photo.",
+      );
+    } finally {
+      setIsUploadingPhoto(false);
+      event.target.value = "";
+    }
+  };
+
   return (
-    <div className="lb-page-shell flex items-center bg-gradient-to-b from-[#0A1A2F] via-[#0F223D] to-[#08101D]">
+    <div className="lb-page-shell flex items-start bg-gradient-to-b from-[#0A1A2F] via-[#0F223D] to-[#08101D] lg:items-center">
       <div className="mx-auto grid w-full max-w-6xl gap-6 lg:grid-cols-[0.7fr_1.3fr]">
         <aside className="lb-surface-card self-start">
           <div className="flex items-center gap-3">
@@ -147,31 +181,61 @@ const OnboardingPage = () => {
               Public Identity
             </div>
 
-            <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-              <div className="lb-avatar-ring h-28 w-28 shrink-0 overflow-hidden bg-slate-900">
-                {formState.profilePic ? (
-                  <img
-                    src={formState.profilePic}
-                    alt="Profile preview"
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-full items-center justify-center">
-                    <CameraIcon className="h-10 w-10 text-slate-500" />
-                  </div>
-                )}
+            <div className="grid gap-6 lg:grid-cols-[180px_1fr] lg:items-start">
+              <div className="flex flex-col items-center gap-3">
+                <div className="lb-avatar-ring h-32 w-32 shrink-0 overflow-hidden bg-slate-950/70">
+                  {formState.profilePic ? (
+                    <img
+                      src={formState.profilePic}
+                      alt="Profile preview"
+                      className="h-full w-full object-cover"
+                      onError={() => updateField("profilePic", "")}
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center">
+                      <CameraIcon className="h-10 w-10 text-slate-500" />
+                    </div>
+                  )}
+                </div>
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handlePhotoUpload}
+                />
+
+                <div className="grid w-full gap-2">
+                  <button
+                    type="button"
+                    onClick={handleRandomAvatar}
+                    className="lb-btn-soft w-full px-3"
+                  >
+                    <ShuffleIcon className="h-4 w-4" />
+                    Generate random avatar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploadingPhoto}
+                    className="lb-btn-soft w-full px-3 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isUploadingPhoto ? (
+                      <LoaderIcon className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <UploadIcon className="h-4 w-4" />
+                    )}
+                    Upload picture
+                  </button>
+                </div>
+
+                <p className="max-w-40 text-center text-xs leading-5 text-slate-500">
+                  JPG, PNG, or WebP up to 5 MB.
+                </p>
               </div>
 
-              <div className="flex-1 space-y-4">
-                <button
-                  type="button"
-                  onClick={handleRandomAvatar}
-                  className="lb-btn-soft"
-                >
-                  <ShuffleIcon className="h-4 w-4" />
-                  Generate Avatar
-                </button>
-
+              <div className="space-y-4">
                 <label className="form-control">
                   <span className="label-text mb-1.5 text-xs font-medium text-slate-300">
                     Full name
@@ -183,30 +247,30 @@ const OnboardingPage = () => {
                     onChange={(event) =>
                       updateField("fullName", event.target.value)
                     }
-                    className="input input-bordered w-full border-white/10 bg-slate-950/60 text-slate-100"
+                    className="lb-field"
                     placeholder="Your full name"
                     required
                   />
                 </label>
+
+                <label className="form-control">
+                  <span className="label-text mb-1.5 text-xs font-medium text-slate-300">
+                    Short bio
+                  </span>
+                  <textarea
+                    name="bio"
+                    value={formState.bio}
+                    onChange={(event) => updateField("bio", event.target.value)}
+                    className="lb-textarea-field min-h-32 resize-y"
+                    placeholder="Example: I want to practice everyday conversation and can help with Hindi or English."
+                    required
+                  />
+                  <span className="mt-1.5 text-xs text-slate-500">
+                    A specific goal gives recommendations better reasons to show.
+                  </span>
+                </label>
               </div>
             </div>
-
-            <label className="form-control mt-5">
-              <span className="label-text mb-1.5 text-xs font-medium text-slate-300">
-                Short bio
-              </span>
-              <textarea
-                name="bio"
-                value={formState.bio}
-                onChange={(event) => updateField("bio", event.target.value)}
-                className="textarea textarea-bordered min-h-28 border-white/10 bg-slate-950/60 text-slate-100"
-                placeholder="Example: I want to practice everyday conversation and can help with Hindi or English."
-                required
-              />
-              <span className="mt-1.5 text-xs text-slate-500">
-                A specific goal gives recommendations better reasons to show.
-              </span>
-            </label>
           </section>
 
           <section className="lb-surface-card">
@@ -226,7 +290,7 @@ const OnboardingPage = () => {
                   onChange={(event) =>
                     updateField("nativeLanguage", event.target.value)
                   }
-                  className="select select-bordered w-full border-white/10 bg-slate-950/60 text-slate-100"
+                  className="lb-field appearance-none"
                   required
                 >
                   <option value="">Language you can help with</option>
@@ -248,7 +312,7 @@ const OnboardingPage = () => {
                   onChange={(event) =>
                     updateField("learningLanguage", event.target.value)
                   }
-                  className="select select-bordered w-full border-white/10 bg-slate-950/60 text-slate-100"
+                  className="lb-field appearance-none"
                   required
                 >
                   <option value="">Language you want to learn</option>
@@ -276,10 +340,10 @@ const OnboardingPage = () => {
                       onClick={() =>
                         updateField("proficiencyLevel", choice.value)
                       }
-                      className={`rounded-xl border p-4 text-left transition ${
+                      className={`lb-choice-card ${
                         isSelected
-                          ? "border-cyan-300/50 bg-cyan-400/15 text-cyan-50"
-                          : "border-white/10 bg-slate-950/40 text-slate-300 hover:border-cyan-300/35"
+                          ? "border-cyan-300/60 bg-cyan-400/15 text-cyan-50 ring-2 ring-cyan-300/15"
+                          : "text-slate-300"
                       }`}
                     >
                       <span className="block text-sm font-semibold">
@@ -313,7 +377,7 @@ const OnboardingPage = () => {
                   onChange={(event) =>
                     updateField("location", event.target.value)
                   }
-                  className="input input-bordered w-full border-white/10 bg-slate-950/60 text-slate-100"
+                  className="lb-field"
                   placeholder="Mumbai, India"
                   required
                 />
@@ -337,7 +401,7 @@ const OnboardingPage = () => {
                   onChange={(event) =>
                     updateField("timezone", event.target.value)
                   }
-                  className="input input-bordered w-full border-white/10 bg-slate-950/60 text-slate-100"
+                  className="lb-field"
                   placeholder="Asia/Kolkata"
                 />
                 <span className="mt-1.5 text-xs text-slate-500">
@@ -364,7 +428,7 @@ const OnboardingPage = () => {
                 onChange={(event) =>
                   updateField("interestsText", event.target.value)
                 }
-                className="input input-bordered w-full border-white/10 bg-slate-950/60 text-slate-100"
+                className="lb-field"
                 placeholder="travel, cricket, music"
               />
               <span className="mt-1.5 text-xs text-slate-500">

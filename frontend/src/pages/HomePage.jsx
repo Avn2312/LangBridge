@@ -159,7 +159,7 @@ const HomePage = () => {
             </p>
           </motion.div>
 
-          <div className="mb-8 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+          <div className="mb-8 rounded-2xl border border-cyan-300/15 bg-white/[0.03] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-5">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <div className="inline-flex items-center gap-2 text-sm font-semibold text-slate-200">
@@ -194,7 +194,7 @@ const HomePage = () => {
                       targetLanguage: event.target.value,
                     }))
                   }
-                  className="select select-bordered min-h-11 w-full border-white/10 bg-slate-950/60 text-sm text-slate-100"
+                  className="lb-field appearance-none"
                 >
                   <option value="">Any practice language</option>
                   {LANGUAGES.map((language) => (
@@ -217,7 +217,7 @@ const HomePage = () => {
                       nativeLanguage: event.target.value,
                     }))
                   }
-                  className="select select-bordered min-h-11 w-full border-white/10 bg-slate-950/60 text-sm text-slate-100"
+                  className="lb-field appearance-none"
                 >
                   <option value="">Any exchange fit</option>
                   {LANGUAGES.map((language) => (
@@ -240,7 +240,7 @@ const HomePage = () => {
                       proficiency: event.target.value,
                     }))
                   }
-                  className="select select-bordered min-h-11 w-full border-white/10 bg-slate-950/60 text-sm text-slate-100"
+                  className="lb-field appearance-none"
                 >
                   <option value="">Any level</option>
                   {PROFICIENCY_OPTIONS.map((level) => (
@@ -251,21 +251,26 @@ const HomePage = () => {
                 </select>
               </label>
 
-              <label className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3">
-                <span className="text-sm font-medium text-slate-200">
-                  Online now
+              <label className="form-control">
+                <span className="label-text mb-1.5 text-xs font-medium text-slate-300">
+                  Availability
                 </span>
-                <input
-                  type="checkbox"
-                  className="toggle toggle-info toggle-sm"
-                  checked={discoveryFilters.onlineNow}
-                  onChange={(event) =>
-                    setDiscoveryFilters((filters) => ({
-                      ...filters,
-                      onlineNow: event.target.checked,
-                    }))
-                  }
-                />
+                <span className="lb-field flex items-center justify-between gap-3">
+                  <span className="text-sm font-medium text-slate-100">
+                    Online now
+                  </span>
+                  <input
+                    type="checkbox"
+                    className="toggle toggle-info toggle-sm"
+                    checked={discoveryFilters.onlineNow}
+                    onChange={(event) =>
+                      setDiscoveryFilters((filters) => ({
+                        ...filters,
+                        onlineNow: event.target.checked,
+                      }))
+                    }
+                  />
+                </span>
               </label>
             </div>
           </div>

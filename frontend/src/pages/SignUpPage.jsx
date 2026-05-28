@@ -16,6 +16,9 @@ const SignUpPage = () => {
   const [showPassword, setShowPassword] = useState(false);
 
   const { isPending, error, signupMutation } = useSignUp();
+  const errorCode = error?.response?.data?.code;
+  const errorMessage =
+    error?.response?.data?.message || "Could not create your account.";
 
   const handleGoogleAuth = () => {
     window.location.href = `${API_BASE_URL}/auth/google`;
@@ -28,14 +31,14 @@ const SignUpPage = () => {
 
   return (
     <div
-      className="h-screen overflow-hidden flex items-center justify-center p-3 sm:p-4 bg-gradient-to-br from-[#0a1f3c] via-[#0f2e52] to-[#153e6a] text-white"
+      className="flex min-h-dvh items-center justify-center overflow-y-auto bg-[radial-gradient(circle_at_18%_18%,rgba(20,201,203,0.24),transparent_30%),radial-gradient(circle_at_82%_82%,rgba(22,118,196,0.24),transparent_34%),linear-gradient(135deg,#071524_0%,#0A1A2F_42%,#0F2E52_100%)] p-3 text-white sm:p-4"
       data-theme="night"
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.7, ease: "easeOut" }}
-        className="border border-white/10 flex flex-col lg:flex-row w-full h-full max-h-[920px] max-w-5xl mx-auto bg-white/5 backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden"
+        className="my-4 mx-auto flex w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-cyan-300/15 bg-[#0B1728]/88 shadow-2xl shadow-cyan-950/40 backdrop-blur-xl lg:min-h-[700px] lg:flex-row"
       >
         {/* LEFT SIDE - SIGNUP FORM */}
         <div className="w-full lg:w-1/2 p-4 sm:p-5 lg:p-6 flex flex-col">
@@ -67,8 +70,27 @@ const SignUpPage = () => {
 
           {/* Error message */}
           {error && (
-            <div className="alert alert-error mb-3 bg-red-500/20 border border-red-400/30 p-2 rounded-md text-sm">
-              <span>{error.response.data.message}</span>
+            <div className="mb-3 rounded-xl border border-amber-300/30 bg-amber-400/10 p-3 text-sm text-amber-50">
+              <p>{errorMessage}</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {errorCode === "GOOGLE_ACCOUNT_EXISTS" ? (
+                  <button
+                    type="button"
+                    onClick={handleGoogleAuth}
+                    className="rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 transition hover:bg-cyan-50"
+                  >
+                    Continue with Google
+                  </button>
+                ) : null}
+                {errorCode === "EMAIL_ALREADY_EXISTS" ? (
+                  <Link
+                    to="/login"
+                    className="rounded-lg bg-cyan-300 px-3 py-1.5 text-xs font-semibold text-slate-950 transition hover:bg-cyan-200"
+                  >
+                    Go to sign in
+                  </Link>
+                ) : null}
+              </div>
             </div>
           )}
 
@@ -92,7 +114,7 @@ const SignUpPage = () => {
               <input
                 type="text"
                 placeholder="e.g. John Doe"
-                className="input  w-full bg-white/10 border border-white/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4fc3f7]"
+                className="h-[54px] w-full rounded-lg border border-cyan-200/15 bg-slate-950/55 px-5 py-2.5 text-white outline-none transition-all placeholder:text-slate-500 focus:border-cyan-300/60 focus:ring-2 focus:ring-cyan-300/30"
                 value={signupData.fullName}
                 onChange={(e) =>
                   setSignupData({ ...signupData, fullName: e.target.value })
@@ -107,7 +129,7 @@ const SignUpPage = () => {
               <input
                 type="email"
                 placeholder="e.g. johndoe123@gmail.com"
-                className="input  w-full bg-white/10 border border-white/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4fc3f7]"
+                className="h-[54px] w-full rounded-lg border border-cyan-200/15 bg-slate-950/55 px-5 py-2.5 text-white outline-none transition-all placeholder:text-slate-500 focus:border-cyan-300/60 focus:ring-2 focus:ring-cyan-300/30"
                 value={signupData.email}
                 onChange={(e) =>
                   setSignupData({ ...signupData, email: e.target.value })
@@ -123,7 +145,7 @@ const SignUpPage = () => {
                 <input
                   type={showPassword ? "text" : "password"}
                   placeholder="e.g. John@123"
-                  className="input w-full pr-11 bg-white/10 border border-white/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4fc3f7]"
+                  className="h-[54px] w-full rounded-lg border border-cyan-200/15 bg-slate-950/55 px-5 py-2.5 pr-12 text-white outline-none transition-all placeholder:text-slate-500 focus:border-cyan-300/60 focus:ring-2 focus:ring-cyan-300/30"
                   value={signupData.password}
                   onChange={(e) =>
                     setSignupData({ ...signupData, password: e.target.value })
@@ -168,7 +190,7 @@ const SignUpPage = () => {
             <motion.button
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
-              className="btn w-full min-h-0 h-10 bg-[#1676c4] hover:bg-[#0f5ca2] text-white font-semibold rounded-lg shadow-md transition-all duration-300"
+              className="btn h-10 min-h-0 w-full rounded-lg border-0 bg-cyan-300 font-semibold text-slate-950 shadow-lg shadow-cyan-500/20 transition-all duration-300 hover:bg-cyan-200"
               type="submit"
               disabled={isPending}
             >
@@ -223,7 +245,7 @@ const SignUpPage = () => {
               Already have an account?{" "}
               <Link
                 to="/login"
-                className="text-[#4fc3f7] hover:text-[#82d4ff] transition-colors underline-offset-2 hover:underline"
+                className="font-semibold text-cyan-200 underline-offset-4 transition-colors hover:text-white hover:underline"
               >
                 Sign in
               </Link>
@@ -236,7 +258,7 @@ const SignUpPage = () => {
           initial={{ opacity: 0, x: 50 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.8 }}
-          className="hidden lg:flex w-full lg:w-1/2 bg-gradient-to-tl from-[#113456]/60 via-[#0f2c4d]/40 to-transparent backdrop-blur-md items-center justify-center"
+          className="hidden w-full items-center justify-center bg-gradient-to-tl from-cyan-500/10 via-blue-500/10 to-transparent backdrop-blur-md lg:flex lg:w-1/2"
         >
           <div className="max-w-md p-5 text-center">
             <motion.img

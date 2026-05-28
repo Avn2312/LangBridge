@@ -98,5 +98,9 @@ export const onboardingValidation = [
     .withMessage("proficiencyLevel is invalid"),
   body("interests").optional().isArray({ max: 8 }),
   body("interests.*").optional().isString().trim().isLength({ max: 40 }),
+  body("profilePic")
+    .optional({ values: "falsy" })
+    .isURL({ protocols: ["http", "https"], require_protocol: true })
+    .withMessage("profilePic should be a valid image URL"),
   validate,
 ];

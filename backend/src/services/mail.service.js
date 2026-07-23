@@ -20,6 +20,7 @@ const createTransporter = () => {
   if (appPassword) {
     return nodemailer.createTransport({
       service: "gmail",
+      family: 4,
       auth: {
         user: mailUser,
         pass: appPassword,
@@ -30,6 +31,7 @@ const createTransporter = () => {
   if (oauthConfigured) {
     return nodemailer.createTransport({
       service: "gmail",
+      family: 4,
       auth: {
         type: "OAuth2",
         user: mailUser,

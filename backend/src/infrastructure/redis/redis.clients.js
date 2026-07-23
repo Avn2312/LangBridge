@@ -60,7 +60,9 @@ const createMemoryRedisClient = () => {
 
       values.set(key, String(value));
 
-      const exIndex = args.findIndex((arg) => String(arg).toUpperCase() === "EX");
+      const exIndex = args.findIndex(
+        (arg) => String(arg).toUpperCase() === "EX",
+      );
       if (exIndex >= 0 && args[exIndex + 1]) {
         expiries.set(key, Date.now() + Number(args[exIndex + 1]) * 1000);
       }
@@ -166,6 +168,28 @@ const buildIoRedisOptions = () =>
         lazyConnect: true,
       };
 
+const buildSessionRedisOptions = () => {
+  const baseOptions = process.env.REDIS_URL
+    ? { url: process.env.REDIS_URL }
+    : {
+        password: redisPassword,
+        socket: {
+          host: redisHost,
+          port: redisPort,
+        },
+      };
+
+  return {
+    ...baseOptions,
+    socket: {
+      ...(baseOptions.socket || {}),
+      family: 4,
+      connectTimeout: 10000,
+      reconnectStrategy: (retries) => Math.min(retries * 100, 1000),
+    },
+  };
+};
+
 // ─── Main Redis client ────────────────────────────────────────────────────────
 // Used for general commands: SET, GET, DEL (e.g. JWT blacklist, online-user sets)
 // INTERVIEW: "Why ioredis instead of the official `redis` package?"
@@ -207,14 +231,7 @@ const subClient = isTest
 //   connect-redis calls `.sendCommand()` internally which only exists on node-redis.
 const sessionRedisClient = isTest
   ? createMemoryRedisClient()
-  : createClient(
-      process.env.REDIS_URL
-        ? { url: process.env.REDIS_URL }
-        : {
-            socket: { host: redisHost, port: redisPort },
-            password: redisPassword,
-          },
-    );
+  : createClient(buildSessionRedisOptions());
 
 // ─── Event listeners ──────────────────────────────────────────────────────────
 redis.on("connect", () => logger.info("Redis connected", { client: "main" }));
@@ -236,11 +253,19 @@ subClient.on("error", (err) =>
   logger.error("Redis connection error", { client: "sub", error: err }),
 );
 
+let sessionRedisReady = false;
+
 sessionRedisClient.on("connect", () =>
   logger.info("Redis connected", { client: "session-store" }),
 );
+sessionRedisClient.on("ready", () => {
+  sessionRedisReady = true;
+});
+sessionRedisClient.on("end", () => {
+  sessionRedisReady = false;
+});
 sessionRedisClient.on("error", (err) =>
-  logger.error("Redis connection error", {
+  (sessionRedisReady ? logger.error : logger.warn)("Redis connection error", {
     client: "session-store",
     error: err,
   }),

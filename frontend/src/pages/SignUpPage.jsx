@@ -7,6 +7,37 @@ import { Link } from "react-router";
 import useSignUp from "../hooks/useSignUp.js";
 import { API_BASE_URL } from "../lib/config.js";
 
+const validateSignupData = ({ fullName, email, password }) => {
+  if (!fullName.trim()) {
+    return "Full name is required.";
+  }
+
+  if (!email.trim()) {
+    return "Email is required.";
+  }
+
+  if (password.length < 8) {
+    return "Password must be at least 8 characters long.";
+  }
+
+  if (!/[A-Z]/.test(password)) {
+    return "Password must include at least one uppercase letter.";
+  }
+
+  if (!/\d/.test(password)) {
+    return "Password must include at least one number.";
+  }
+
+  return "";
+};
+
+const getSignupErrorMessage = (error) => {
+  const data = error?.response?.data;
+  const validationMessage = data?.errors?.[0]?.msg;
+
+  return validationMessage || data?.message || "Could not create your account.";
+};
+
 const SignUpPage = () => {
   const [signupData, setSignupData] = useState({
     fullName: "",
@@ -14,19 +45,39 @@ const SignUpPage = () => {
     password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [clientError, setClientError] = useState("");
 
   const { isPending, error, signupMutation } = useSignUp();
   const errorCode = error?.response?.data?.code;
-  const errorMessage =
-    error?.response?.data?.message || "Could not create your account.";
+  const errorMessage = clientError || getSignupErrorMessage(error);
 
   const handleGoogleAuth = () => {
     window.location.href = `${API_BASE_URL}/auth/google`;
   };
 
+  const updateSignupData = (field, value) => {
+    if (clientError) {
+      setClientError("");
+    }
+
+    setSignupData((current) => ({ ...current, [field]: value }));
+  };
+
   const handleSignup = (e) => {
     e.preventDefault();
-    signupMutation(signupData);
+
+    const validationError = validateSignupData(signupData);
+    if (validationError) {
+      setClientError(validationError);
+      return;
+    }
+
+    setClientError("");
+    signupMutation({
+      ...signupData,
+      fullName: signupData.fullName.trim(),
+      email: signupData.email.trim(),
+    });
   };
 
   return (
@@ -69,7 +120,7 @@ const SignUpPage = () => {
           </motion.div>
 
           {/* Error message */}
-          {error && (
+          {(clientError || error) && (
             <div className="mb-3 rounded-xl border border-amber-300/30 bg-amber-400/10 p-3 text-sm text-amber-50">
               <p>{errorMessage}</p>
               <div className="mt-2 flex flex-wrap gap-2">
@@ -116,9 +167,7 @@ const SignUpPage = () => {
                 placeholder="e.g. John Doe"
                 className="h-[54px] w-full rounded-lg border border-cyan-200/15 bg-slate-950/55 px-5 py-2.5 text-white outline-none transition-all placeholder:text-slate-500 focus:border-cyan-300/60 focus:ring-2 focus:ring-cyan-300/30"
                 value={signupData.fullName}
-                onChange={(e) =>
-                  setSignupData({ ...signupData, fullName: e.target.value })
-                }
+                onChange={(e) => updateSignupData("fullName", e.target.value)}
                 required
               />
             </div>
@@ -131,9 +180,7 @@ const SignUpPage = () => {
                 placeholder="e.g. johndoe123@gmail.com"
                 className="h-[54px] w-full rounded-lg border border-cyan-200/15 bg-slate-950/55 px-5 py-2.5 text-white outline-none transition-all placeholder:text-slate-500 focus:border-cyan-300/60 focus:ring-2 focus:ring-cyan-300/30"
                 value={signupData.email}
-                onChange={(e) =>
-                  setSignupData({ ...signupData, email: e.target.value })
-                }
+                onChange={(e) => updateSignupData("email", e.target.value)}
                 required
               />
             </div>
@@ -147,10 +194,9 @@ const SignUpPage = () => {
                   placeholder="e.g. John@123"
                   className="h-[54px] w-full rounded-lg border border-cyan-200/15 bg-slate-950/55 px-5 py-2.5 pr-12 text-white outline-none transition-all placeholder:text-slate-500 focus:border-cyan-300/60 focus:ring-2 focus:ring-cyan-300/30"
                   value={signupData.password}
-                  onChange={(e) =>
-                    setSignupData({ ...signupData, password: e.target.value })
-                  }
+                  onChange={(e) => updateSignupData("password", e.target.value)}
                   required
+                  minLength={8}
                 />
                 <button
                   type="button"
@@ -162,7 +208,8 @@ const SignUpPage = () => {
                 </button>
               </div>
               <p className="text-[11px] text-[#b0c4de] mt-1 leading-snug">
-                Password must be at least 8 characters long.
+                Password must be at least 8 characters and include one uppercase
+                letter and one number.
               </p>
             </div>
 

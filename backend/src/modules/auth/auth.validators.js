@@ -8,9 +8,12 @@ const validate = (req, res, next) => {
     return next();
   }
 
-  return sendError(res, 400, "Validation failed.", {
+  const validationErrors = errors.array();
+  const message = validationErrors[0]?.msg || "Validation failed.";
+
+  return sendError(res, 400, message, {
     code: "VALIDATION_ERROR",
-    errors: errors.array(),
+    errors: validationErrors,
   });
 };
 

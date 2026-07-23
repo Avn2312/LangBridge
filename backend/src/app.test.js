@@ -88,6 +88,31 @@ describe("auth and request middleware", () => {
     });
   });
 
+  it("returns a specific signup validation message", async () => {
+    const response = await request(app)
+      .post("/api/auth/signup")
+      .send({
+        fullName: "Asha Rao",
+        email: "asha@example.com",
+        password: "password",
+      })
+      .expect(400);
+
+    expect(response.body).toMatchObject({
+      success: false,
+      code: "VALIDATION_ERROR",
+      message:
+        "password should be at least 8 characters long and contain at least one uppercase letter and one number",
+    });
+    expect(response.body.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          path: "password",
+        }),
+      ]),
+    );
+  });
+
   it("allows configured frontend origins through CORS", async () => {
     const response = await request(app)
       .options("/api/auth/me")

@@ -3,6 +3,9 @@ import nodemailer from "nodemailer";
 import { logger } from "../core/observability/logger.js";
 
 const isTest = process.env.NODE_ENV === "test";
+const shouldVerifyTransporter =
+  process.env.MAIL_VERIFY_ON_BOOT === "true" ||
+  process.env.NODE_ENV !== "production";
 const mailUser = process.env.GOOGLE_USER;
 const appPassword =
   process.env.GOOGLE_APP_PASSWORD || process.env.GMAIL_APP_PASSWORD;
@@ -21,6 +24,9 @@ const createTransporter = () => {
     return nodemailer.createTransport({
       service: "gmail",
       family: 4,
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 10000,
       auth: {
         user: mailUser,
         pass: appPassword,
@@ -32,6 +38,9 @@ const createTransporter = () => {
     return nodemailer.createTransport({
       service: "gmail",
       family: 4,
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 10000,
       auth: {
         type: "OAuth2",
         user: mailUser,
@@ -53,7 +62,7 @@ if (!transporter) {
       "Email transporter is disabled because mail credentials are missing",
     );
   }
-} else {
+} else if (shouldVerifyTransporter) {
   transporter
     .verify()
     .then(() => {
@@ -78,6 +87,13 @@ if (!transporter) {
         );
       }
     });
+} else if (!isTest) {
+  logger.info(
+    "Email transporter configured; boot verification skipped in production",
+    {
+      mode: appPassword ? "gmail-app-password" : "gmail-oauth2",
+    },
+  );
 }
 
 export async function sendEmail({ to, subject, html, text }) {

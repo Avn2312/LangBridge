@@ -139,8 +139,8 @@ app.use("/api", (req, res) => {
 });
 
 // ──── PRODUCTION STATIC FILES ────
-// In production, Express serves the React build files
-if (isProduction && fs.existsSync(path.join(frontendDistPath, "index.html"))) {
+// Express serves the React build files whenever frontend/dist/index.html is built
+if (fs.existsSync(path.join(frontendDistPath, "index.html"))) {
   app.use(express.static(frontendDistPath));
 
   // For any route not handled by our API, serve index.html (React app)

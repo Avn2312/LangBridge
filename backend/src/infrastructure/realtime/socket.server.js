@@ -7,16 +7,22 @@ export const createSocketServer = (httpServer) => {
   const allowedOrigins = new Set([
     ...runtimeConfig.corsOrigins,
     runtimeConfig.frontendUrl,
-  ]);
+    runtimeConfig.baseUrl,
+    process.env.RENDER_EXTERNAL_URL,
+  ].filter(Boolean));
 
   const io = new Server(httpServer, {
     cors: {
       origin: (origin, callback) => {
-        if (!origin || allowedOrigins.has(origin)) {
+        if (
+          !origin ||
+          allowedOrigins.has(origin) ||
+          origin.endsWith(".onrender.com")
+        ) {
           return callback(null, true);
         }
 
-        return callback(new Error(`CORS blocked for origin: ${origin}`));
+        return callback(null, false);
       },
       credentials: true,
       methods: ["GET", "POST"],

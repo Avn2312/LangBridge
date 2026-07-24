@@ -50,7 +50,25 @@ if (isProduction) {
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },
-    contentSecurityPolicy: isProduction ? undefined : false,
+    contentSecurityPolicy: isProduction
+      ? {
+          directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+            fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
+            imgSrc: [
+              "'self'",
+              "data:",
+              "blob:",
+              "https://res.cloudinary.com",
+              "https://*.googleusercontent.com",
+              "https://*.gravatar.com",
+            ],
+            connectSrc: ["'self'", "wss:", "ws:", "https://*.onrender.com"],
+          },
+        }
+      : false,
   }),
 );
 

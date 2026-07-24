@@ -71,10 +71,6 @@ app.use(
 app.use(traceContextMiddleware);
 app.use(requestLogger);
 
-app.get("/", (req, res) => {
-  res.status(200).json({ status: "ok", message: "LangBridge API is running" });
-});
-
 app.get("/healthz", (req, res) => {
   res.status(200).json(getLiveness());
 });
@@ -157,8 +153,13 @@ if (isProduction && fs.existsSync(path.join(frontendDistPath, "index.html"))) {
 
     res.sendFile(path.join(frontendDistPath, "index.html"));
   });
+} else {
+  app.get("/", (req, res) => {
+    res.status(200).json({ status: "ok", message: "LangBridge API is running" });
+  });
 }
 
 app.use(errorHandler);
 
 export default app;
+

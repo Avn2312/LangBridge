@@ -23,6 +23,9 @@ const createTransporter = () => {
   if (appPassword) {
     return nodemailer.createTransport({
       service: "gmail",
+      host: "smtp.gmail.com",
+      port: 587,
+      secure: false,
       family: 4,
       connectionTimeout: 10000,
       greetingTimeout: 10000,

@@ -35,7 +35,9 @@ const frontendDistPath = path.join(__dirname, "../../frontend/dist");
 const allowedOrigins = new Set([
   ...runtimeConfig.corsOrigins,
   runtimeConfig.frontendUrl,
-]);
+  runtimeConfig.baseUrl,
+  process.env.RENDER_EXTERNAL_URL,
+].filter(Boolean));
 const sessionRedisClient = getSessionRedisClient();
 
 const app = express();
@@ -52,17 +54,19 @@ app.use(
   }),
 );
 
-// CORS — allows the frontend (localhost:5173) to make requests to our backend
-// WHY credentials:true? Because we send JWT in httpOnly cookies,
-//     and the browser won't send cookies cross-origin unless CORS allows it.
+// CORS — allows the frontend to make requests to our backend
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.has(origin)) {
+      if (
+        !origin ||
+        allowedOrigins.has(origin) ||
+        origin.endsWith(".onrender.com")
+      ) {
         return callback(null, true);
       }
 
-      return callback(new Error(`CORS blocked for origin: ${origin}`));
+      return callback(null, false);
     },
     credentials: true,
   }),

@@ -125,7 +125,7 @@ const MessageBubble = ({
 
       {/* Bubble */}
       <div
-        className={`relative max-w-[82%] group sm:max-w-[72%] ${isOwn ? "items-end" : "items-start"} flex flex-col`}
+        className={`relative max-w-[85%] group sm:max-w-[72%] ${isOwn ? "items-end" : "items-start"} flex flex-col`}
       >
         <div
           className={`min-w-32 px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap break-words shadow-sm ${

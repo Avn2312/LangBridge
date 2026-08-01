@@ -83,6 +83,7 @@ const ChatInput = ({ receiverId, disabled, onSend }) => {
   const isTypingRef = useRef(false);
   const pendingAckTimersRef = useRef(new Map());
   const fileInputRef = useRef(null);
+  const textareaRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const mediaStreamRef = useRef(null);
   const audioChunksRef = useRef([]);
@@ -318,6 +319,17 @@ const ChatInput = ({ receiverId, disabled, onSend }) => {
     return () => window.clearInterval(interval);
   }, [isRecording]);
 
+  // Auto-expand textarea based on content value, max 128px (max-h-32)
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    textarea.style.height = "40px"; // Reset height to 40px default
+    if (text) {
+      const scrollHeight = textarea.scrollHeight;
+      textarea.style.height = `${Math.min(scrollHeight, 128)}px`;
+    }
+  }, [text]);
+
   // ── Send ───────────────────────────────────────────────────────────────────
   const handleSend = () => {
     const trimmed = text.trim();
@@ -538,15 +550,15 @@ const ChatInput = ({ receiverId, disabled, onSend }) => {
   };
 
   return (
-    <div className="relative border-t border-blue-500/10 bg-[#0A1525]/85 px-4 py-3 backdrop-blur-xl">
+    <div className="relative border-t border-blue-500/10 bg-[#0A1525]/85 px-2.5 py-2 sm:px-4 sm:py-3 backdrop-blur-xl">
       {/* Emoji picker */}
       {showEmoji && (
-        <div className="absolute bottom-full mb-2 right-4 z-50">
+        <div className="absolute bottom-full mb-2 right-2 sm:right-4 z-50 max-w-[calc(100vw-2rem)]">
           <EmojiPicker
             onEmojiClick={onEmojiClick}
             theme="dark"
-            height={350}
-            width={320}
+            height={320}
+            width={300}
             lazyLoadEmojis
           />
         </div>
@@ -587,15 +599,15 @@ const ChatInput = ({ receiverId, disabled, onSend }) => {
       )}
 
       {isRecording ? (
-        <div className="mb-3 flex items-center justify-between gap-3 rounded-xl border border-rose-400/25 bg-rose-500/10 px-3 py-2 text-rose-100">
+        <div className="mb-2 sm:mb-3 flex items-center justify-between gap-3 rounded-xl border border-rose-400/25 bg-rose-500/10 px-3 py-2 text-rose-100">
           <div className="flex min-w-0 items-center gap-3">
-            <span className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-rose-500/20">
-              <span className="absolute h-8 w-8 animate-ping rounded-full bg-rose-400/20" />
-              <Mic size={16} />
+            <span className="relative flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-full bg-rose-500/20">
+              <span className="absolute h-7 w-7 sm:h-8 sm:w-8 animate-ping rounded-full bg-rose-400/20" />
+              <Mic size={15} />
             </span>
             <div className="min-w-0">
               <p className="text-xs font-semibold">Recording voice note</p>
-              <div className="mt-1 flex items-center gap-1.5">
+              <div className="mt-0.5 sm:mt-1 flex items-center gap-1.5">
                 {[0, 1, 2, 3, 4].map((bar) => (
                   <span
                     key={bar}
@@ -623,65 +635,72 @@ const ChatInput = ({ receiverId, disabled, onSend }) => {
         </div>
       ) : null}
 
-      <div className="flex items-end gap-2">
-        <button
-          type="button"
-          id="chat-attach-button"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={disabled || isUploadingAttachment || isRecording}
-          className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-white/5 hover:text-cyan-400 disabled:opacity-40"
-          title="Attach file"
-        >
-          {isUploadingAttachment ? (
-            <Loader2 className="animate-spin" size={20} />
-          ) : (
-            <Paperclip size={20} />
-          )}
-        </button>
+      <div className="flex items-end gap-1 sm:gap-2">
+        <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
+          <button
+            type="button"
+            id="chat-attach-button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={disabled || isUploadingAttachment || isRecording}
+            className="rounded-lg p-1.5 sm:p-2 text-gray-400 transition-colors hover:bg-white/5 hover:text-cyan-400 disabled:opacity-40"
+            title="Attach file"
+          >
+            {isUploadingAttachment ? (
+              <Loader2 className="animate-spin" size={18} />
+            ) : (
+              <Paperclip size={18} className="sm:w-5 sm:h-5" />
+            )}
+          </button>
 
-        <button
-          type="button"
-          id="chat-record-button"
-          onClick={handleToggleRecording}
-          disabled={disabled || isUploadingAttachment}
-          className={`rounded-lg p-2 transition-colors disabled:opacity-40 ${
-            isRecording
-              ? "bg-rose-500/10 text-rose-300 hover:text-rose-200"
-              : "text-gray-400 hover:bg-white/5 hover:text-cyan-400"
-          }`}
-          title={isRecording ? "Stop recording" : "Record voice note"}
-        >
-          {isRecording ? <Square size={18} /> : <Mic size={20} />}
-        </button>
+          <button
+            type="button"
+            id="chat-record-button"
+            onClick={handleToggleRecording}
+            disabled={disabled || isUploadingAttachment}
+            className={`rounded-lg p-1.5 sm:p-2 transition-colors disabled:opacity-40 ${
+              isRecording
+                ? "bg-rose-500/10 text-rose-300 hover:text-rose-200"
+                : "text-gray-400 hover:bg-white/5 hover:text-cyan-400"
+            }`}
+            title={isRecording ? "Stop recording" : "Record voice note"}
+          >
+            {isRecording ? (
+              <Square size={16} className="sm:w-[18px] sm:h-[18px]" />
+            ) : (
+              <Mic size={18} className="sm:w-5 sm:h-5" />
+            )}
+          </button>
 
-        {/* Emoji toggle */}
-        <button
-          type="button"
-          id="emoji-picker-toggle"
-          onClick={() => setShowEmoji((v) => !v)}
-          className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-white/5 hover:text-cyan-400"
-          title="Add emoji"
-        >
-          <Smile size={20} />
-        </button>
+          {/* Emoji toggle */}
+          <button
+            type="button"
+            id="emoji-picker-toggle"
+            onClick={() => setShowEmoji((v) => !v)}
+            className="rounded-lg p-1.5 sm:p-2 text-gray-400 transition-colors hover:bg-white/5 hover:text-cyan-400"
+            title="Add emoji"
+          >
+            <Smile size={18} className="sm:w-5 sm:h-5" />
+          </button>
 
-        <button
-          type="button"
-          id="chat-correct-draft-button"
-          onClick={handleCorrectDraft}
-          disabled={!text.trim() || disabled || isCorrecting}
-          className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-white/5 hover:text-cyan-400 disabled:opacity-40"
-          title="Polish draft"
-        >
-          {isCorrecting ? (
-            <Loader2 className="animate-spin" size={18} />
-          ) : (
-            <Wand2 size={18} />
-          )}
-        </button>
+          <button
+            type="button"
+            id="chat-correct-draft-button"
+            onClick={handleCorrectDraft}
+            disabled={!text.trim() || disabled || isCorrecting}
+            className="rounded-lg p-1.5 sm:p-2 text-gray-400 transition-colors hover:bg-white/5 hover:text-cyan-400 disabled:opacity-40"
+            title="Polish draft"
+          >
+            {isCorrecting ? (
+              <Loader2 className="animate-spin" size={16} />
+            ) : (
+              <Wand2 size={16} className="sm:w-[18px] sm:h-[18px]" />
+            )}
+          </button>
+        </div>
 
         {/* Text area */}
         <textarea
+          ref={textareaRef}
           id="chat-message-input"
           rows={1}
           value={text}
@@ -690,18 +709,17 @@ const ChatInput = ({ receiverId, disabled, onSend }) => {
           disabled={disabled}
           placeholder={
             isRecording
-              ? "Finish recording to attach your voice note"
+              ? "Finish recording..."
               : "Write a message to practice..."
           }
-          className="max-h-32 flex-1 resize-none overflow-y-auto rounded-xl border border-blue-500/20 bg-[#152232] px-4 py-2.5 text-sm text-gray-100 outline-none transition-colors placeholder:text-gray-500 focus:border-cyan-500/50 disabled:opacity-60"
-          style={{ fieldSizing: "content" }}
+          className="min-h-[40px] h-[40px] max-h-32 flex-1 resize-none overflow-y-auto rounded-xl border border-blue-500/20 bg-[#152232] px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm text-gray-100 outline-none transition-colors placeholder:text-gray-500 placeholder:truncate focus:border-cyan-500/50 disabled:opacity-60"
         />
 
         {text.trim() ? (
           <button
             type="button"
             onClick={() => setText("")}
-            className="hidden rounded-lg p-2 text-gray-500 transition-colors hover:bg-white/5 hover:text-gray-200 sm:block"
+            className="hidden shrink-0 rounded-lg p-1.5 sm:p-2 text-gray-500 transition-colors hover:bg-white/5 hover:text-gray-200 sm:block"
             title="Clear draft"
           >
             <Trash2 size={18} />
@@ -719,10 +737,10 @@ const ChatInput = ({ receiverId, disabled, onSend }) => {
             isUploadingAttachment ||
             isRecording
           }
-          className="rounded-xl bg-gradient-to-br from-blue-600 to-cyan-600 p-2.5 text-white shadow-lg transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+          className="shrink-0 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-600 p-2 sm:p-2.5 text-white shadow-lg transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
           title="Send message"
         >
-          <SendHorizonal size={18} />
+          <SendHorizonal size={18} className="sm:w-[18px] sm:h-[18px]" />
         </button>
       </div>
     </div>

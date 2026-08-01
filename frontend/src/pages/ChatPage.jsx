@@ -282,25 +282,25 @@ const ChatPage = () => {
   return (
     <div className="flex h-dvh flex-col bg-gradient-to-b from-[#08131F] via-[#0B1828] to-[#0C1B2E]">
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <header className="flex flex-shrink-0 items-center gap-3 border-b border-blue-500/10 bg-[#0A1525]/85 px-4 py-3 backdrop-blur-xl">
+      <header className="relative z-50 flex flex-shrink-0 items-center gap-2 sm:gap-3 border-b border-blue-500/10 bg-[#0A1525]/85 px-3 py-2.5 sm:px-4 sm:py-3 backdrop-blur-xl">
         <button
           id="chat-back-button"
           onClick={() => navigate(-1)}
-          className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-blue-500/10 transition"
+          className="shrink-0 p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-blue-500/10 transition"
         >
           <ArrowLeft size={20} />
         </button>
 
         {loadingUser ? (
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-blue-500/20 animate-pulse" />
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-blue-500/20 animate-pulse shrink-0" />
             <div className="h-4 w-28 rounded bg-blue-500/20 animate-pulse" />
           </div>
         ) : (
-          <div className="min-w-0 flex-1 items-center gap-3 sm:flex">
+          <div className="flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3">
             {/* Avatar with online dot */}
-            <div className="relative inline-flex align-middle">
-              <div className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-blue-500/30">
+            <div className="relative shrink-0">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden ring-2 ring-blue-500/30">
                 <img
                   src={targetUser?.profilePic || FALLBACK_AVATAR}
                   alt={targetUser?.fullName}
@@ -312,19 +312,19 @@ const ChatPage = () => {
               )}
             </div>
 
-            <div className="ml-3 inline-block min-w-0 align-middle sm:ml-0">
-              <p className="font-semibold text-white text-sm leading-tight">
+            <div className="flex flex-col min-w-0 flex-1 justify-center">
+              <p className="font-semibold text-white text-sm leading-tight truncate">
                 {targetUser?.fullName}
               </p>
-              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
+              <div className="mt-0.5 flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs">
                 <span
-                  className={isTargetOnline ? "text-emerald-400" : "text-gray-500"}
+                  className={isTargetOnline ? "text-emerald-400 font-medium" : "text-gray-500"}
                 >
                   {isTargetOnline ? "Online" : "Offline"}
                 </span>
                 {learningPairLabel ? (
-                  <span className="inline-flex max-w-full items-center gap-1 rounded-full border border-cyan-300/15 bg-cyan-500/10 px-2 py-0.5 text-[11px] text-cyan-100">
-                    <Languages size={12} />
+                  <span className="inline-flex max-w-full items-center gap-1 rounded-full border border-cyan-300/15 bg-cyan-500/10 px-2 py-0.5 text-[10px] sm:text-[11px] text-cyan-100">
+                    <Languages size={11} className="shrink-0" />
                     <span className="truncate">{learningPairLabel}</span>
                   </span>
                 ) : null}
@@ -333,7 +333,7 @@ const ChatPage = () => {
           </div>
         )}
 
-        <div className="relative ml-auto flex items-center gap-2">
+        <div className="relative ml-auto flex items-center gap-1 sm:gap-2 shrink-0">
           <CallButton handleVideoCall={handleVideoCall} />
           <button
             type="button"
@@ -347,10 +347,10 @@ const ChatPage = () => {
           <AnimatePresence>
             {showSafetyActions ? (
               <motion.div
-                initial={{ opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                className="absolute right-0 top-11 z-30 w-52 rounded-xl border border-slate-700 bg-[#0B1726] p-2 shadow-2xl"
+                initial={{ opacity: 0, y: -6, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -6, scale: 0.95 }}
+                className="absolute right-0 top-full mt-2 z-50 w-48 sm:w-52 rounded-xl border border-slate-700 bg-[#0B1726] p-2 shadow-2xl"
               >
                 <div className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
                   Safety

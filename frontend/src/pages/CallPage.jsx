@@ -13,7 +13,14 @@ import { useLocation, useNavigate, useParams } from "react-router";
 import { useSocketStore } from "../store/socketStore.js";
 
 const rtcConfig = {
-  iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+  iceServers: [
+    { urls: "stun:stun.l.google.com:19302" },
+    { urls: "stun:stun1.l.google.com:19302" },
+    { urls: "stun:stun2.l.google.com:19302" },
+    { urls: "stun:stun3.l.google.com:19302" },
+    { urls: "stun:stun4.l.google.com:19302" },
+    { urls: "stun:global.stun.twilio.com:3478" },
+  ],
 };
 
 const callCopy = {
@@ -43,6 +50,7 @@ const CallPage = () => {
   const peerRef = useRef(null);
   const socketRef = useRef(null);
   const queuedIceCandidatesRef = useRef([]);
+  const pendingOfferRef = useRef(null);
   const hasEndedRef = useRef(false);
   const inviteSentRef = useRef(false);
   const callAcceptedRef = useRef(false);
@@ -229,6 +237,11 @@ const CallPage = () => {
     async ({ callId: eventCallId, offer }) => {
       if (eventCallId !== callId || !offer || hasEndedRef.current) return;
 
+      if (!localStreamRef.current) {
+        pendingOfferRef.current = { callId: eventCallId, offer };
+        return;
+      }
+
       const peer = createPeerConnection();
       if (!peer) return;
 
@@ -412,6 +425,12 @@ const CallPage = () => {
 
         createPeerConnection();
         setCallState("ready");
+
+        if (pendingOfferRef.current) {
+          const queuedOffer = pendingOfferRef.current;
+          pendingOfferRef.current = null;
+          handleOffer(queuedOffer);
+        }
       } catch (err) {
         console.error("Failed to access camera/microphone:", err);
         setCallState("failed");
@@ -427,7 +446,7 @@ const CallPage = () => {
       isActive = false;
       cleanupCall();
     };
-  }, [cleanupCall, createPeerConnection, stopStream]);
+  }, [cleanupCall, createPeerConnection, handleOffer, stopStream]);
 
   useEffect(() => {
     if (

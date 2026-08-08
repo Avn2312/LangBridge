@@ -1,4 +1,5 @@
 import { createElement, useEffect, useRef } from "react";
+import { useNavigate } from "react-router";
 import { io } from "socket.io-client";
 import { useSocketStore } from "../store/socketStore.js";
 import { useQueryClient } from "@tanstack/react-query";
@@ -26,6 +27,7 @@ const OUTBOX_ACK_TIMEOUT_MS = Number(
  * component in the tree can reactively read them without prop drilling.
  */
 const useSocket = (authUser) => {
+  const navigate = useNavigate();
   const socketRef = useRef(null);
   const queryClient = useQueryClient();
 
@@ -233,7 +235,7 @@ const useSocket = (authUser) => {
                   onClick: () => {
                     toast.dismiss(t.id);
                     socket.emit("call:accept", { callerId, callId });
-                    window.location.href = `/call/${callerId}?callId=${callId}`;
+                    navigate(`/call/${callerId}?callId=${callId}`);
                   },
                   className:
                     "rounded-md bg-emerald-500 px-3 py-2 text-sm font-medium text-white",

@@ -118,17 +118,20 @@ export async function listConversations({ userId, query }) {
     defaultLimit: 20,
     maxLimit: 100,
   });
+  // Generate a unique redis cache key for the given page and limit
   const cacheKey = cacheKeys.conversations({
     userId: userId.toString(),
     page,
     limit,
   });
 
+  // Redis Cache Hit Case
   const cached = await readJsonCache(cacheKey);
   if (cached) {
     return cached;
   }
 
+  // Miss case
   const result = await aggregateConversationsForUser({ userId, skip, limit });
   const payload = serializeConversationsResult({
     conversations: result.conversations,
@@ -137,6 +140,7 @@ export async function listConversations({ userId, query }) {
     total: result.total,
   });
 
+  // Cache the result in redis for 30 seconds
   await writeJsonCache(cacheKey, payload, 30);
   return payload;
 }
@@ -153,7 +157,7 @@ export async function sendRealtimeMessage({
     windowSeconds: runtimeConfig.rateLimit.messageWindowSeconds,
     maxRequests: runtimeConfig.rateLimit.messageMaxRequests,
   });
-
+  
   if (!rateLimit.allowed) {
     return {
       ok: false,
@@ -225,8 +229,8 @@ export async function sendRealtimeMessage({
       });
     } catch (dbError) {
       const duplicateClientId =
-        dbError?.code === 11000 &&
-        normalizedClientMessageId &&
+        dbError?.code === 11000 &&  // 11000 - MongoDB's duplicate key error
+        normalizedClientMessageId && 
         dbError?.keyPattern?.sender &&
         dbError?.keyPattern?.clientMessageId;
 

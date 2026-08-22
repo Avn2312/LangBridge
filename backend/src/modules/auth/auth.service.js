@@ -49,20 +49,42 @@ async function sendVerificationEmail({ userId, email, fullName }) {
   const verificationToken = generateVerificationToken(userId);
   const verifyUrl = `${getBaseUrl()}/api/auth/verify-email?token=${verificationToken}`;
 
-  return sendEmail({
-    to: email,
-    subject: "Verify your LangBridge email!",
-    html: `
-      <p>Hi ${fullName},</p>
-      <p>Welcome to LangBridge! We're excited to have you on board.</p>
-      <p>Please verify your email address by clicking the link below. This link expires in <strong>24 hours</strong>.</p>
-      <a href="${verifyUrl}">Verify My Email</a>
-      <p>If you did not create this account, you can safely ignore this email.</p>
-      <p>If you have any questions, reach out to us at support@langbridge.io.</p>
-      <p>Happy learning!</p>
-      <p>The LangBridge Team</p>
-    `,
-  });
+  logger.info(`[Email Verification URL]: ${verifyUrl}`);
+
+  try {
+    const details = await sendEmail({
+      to: email,
+      subject: "Verify your LangBridge email!",
+      html: `
+        <p>Hi ${fullName},</p>
+        <p>Welcome to LangBridge! We're excited to have you on board.</p>
+        <p>Please verify your email address by clicking the link below. This link expires in <strong>24 hours</strong>.</p>
+        <a href="${verifyUrl}">Verify My Email</a>
+        <p>If you did not create this account, you can safely ignore this email.</p>
+        <p>If you have any questions, reach out to us at support@langbridge.io.</p>
+        <p>Happy learning!</p>
+        <p>The LangBridge Team</p>
+      `,
+    });
+
+    return {
+      messageId: details.messageId,
+      accepted: details.accepted,
+      rejected: details.rejected,
+      delivered: true,
+      verifyUrl,
+    };
+  } catch (error) {
+    logger.warn(
+      `Verification email delivery failed (logged verification link instead): ${error.message}`,
+    );
+
+    return {
+      messageId: "fallback-logged-link",
+      delivered: false,
+      verifyUrl,
+    };
+  }
 }
 
 const recordLoginFailure = async (bruteForceKey) => {
@@ -116,8 +138,7 @@ export async function signupUser({ email, password, fullName }) {
       userId: newUser._id.toString(),
       email,
       messageId: mailInfo.messageId,
-      accepted: mailInfo.accepted,
-      rejected: mailInfo.rejected,
+      delivered: mailInfo.delivered,
     });
   } catch (emailError) {
     logger.error("Verification email failed to send", emailError);
@@ -166,7 +187,9 @@ export async function resendUserVerificationEmail(userId) {
 
   return {
     success: true,
-    message: "Verification email sent. Please check your inbox and spam folder.",
+    message: mailInfo.delivered
+      ? "Verification email sent. Please check your inbox and spam folder."
+      : "Verification email link generated. (Check server logs if mail transport is not configured).",
     messageId: mailInfo.messageId,
   };
 }

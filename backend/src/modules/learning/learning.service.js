@@ -291,7 +291,7 @@ export async function translateMessage({ user, body }) {
         limit: 8,
       })
     : [];
-  const translation = createContextAwareTranslation({
+  const translation = await createContextAwareTranslation({
     text,
     targetLanguage,
     contextMessages: contextMessages.reverse(),

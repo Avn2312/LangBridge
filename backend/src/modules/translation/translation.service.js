@@ -124,24 +124,65 @@ export const createCorrection = ({ text, tone = "friendly" }) => {
   };
 };
 
-export const createContextAwareTranslation = ({
+import { translate } from "@vitalets/google-translate-api";
+
+const LANGUAGE_CODE_MAP = {
+  english: "en",
+  en: "en",
+  spanish: "es",
+  es: "es",
+  hindi: "hi",
+  hi: "hi",
+  french: "fr",
+  fr: "fr",
+  german: "de",
+  de: "de",
+  japanese: "ja",
+  ja: "ja",
+  chinese: "zh-CN",
+  zh: "zh-CN",
+  "zh-cn": "zh-CN",
+  "zh-tw": "zh-TW",
+  arabic: "ar",
+  ar: "ar",
+  russian: "ru",
+  ru: "ru",
+  portuguese: "pt",
+  pt: "pt",
+  italian: "it",
+  it: "it",
+  korean: "ko",
+  ko: "ko",
+  dutch: "nl",
+  nl: "nl",
+  turkish: "tr",
+  tr: "tr",
+  polish: "pl",
+  pl: "pl",
+  swedish: "sv",
+  sv: "sv",
+  vietnamese: "vi",
+  vi: "vi",
+  thai: "th",
+  th: "th",
+  greek: "el",
+  el: "el",
+  hebrew: "he",
+  he: "he",
+};
+
+export const resolveLanguageCode = (targetLanguage = "english") => {
+  const normalized = String(targetLanguage || "english").trim().toLowerCase();
+  return LANGUAGE_CODE_MAP[normalized] || (normalized.length <= 3 && normalized.length > 0 ? normalized : "en");
+};
+
+export const createContextAwareTranslation = async ({
   text,
-  targetLanguage,
+  targetLanguage = "english",
   contextMessages = [],
 }) => {
   const source = String(text || "").trim();
-  const target = normalizeLanguage(targetLanguage || "english");
-  const dictionary = wordLists[target] || wordLists.english;
-  let translated = source.toLowerCase();
-
-  for (const [from, to] of Object.entries(dictionary)) {
-    translated = translated.replace(
-      new RegExp(`\\b${from.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "gi"),
-      to,
-    );
-  }
-
-  translated = sentenceCase(translated);
+  const targetCode = resolveLanguageCode(targetLanguage);
   const contextHint = contextMessages
     .map((message) => message.text)
     .filter(Boolean)
@@ -149,15 +190,56 @@ export const createContextAwareTranslation = ({
     .join(" ")
     .slice(0, 180);
 
-  return {
-    original: source,
-    translated,
-    targetLanguage: target,
-    confidence: dictionary === wordLists.english ? 0.62 : 0.74,
-    contextHint,
-    note:
-      "Local deterministic translation preview. Swap this helper with an LLM/provider call for production-grade translation.",
-  };
+  if (!source) {
+    return {
+      original: "",
+      translated: "",
+      targetLanguage,
+      confidence: 1.0,
+      contextHint,
+    };
+  }
+
+  try {
+    const res = await translate(source, { to: targetCode });
+    const detectedLanguage = res?.raw?.src || res?.from?.language?.iso || "auto";
+    const confidence = res?.raw?.confidence || 0.95;
+
+    return {
+      original: source,
+      translated: res.text || source,
+      targetLanguage,
+      targetCode,
+      detectedLanguage,
+      confidence,
+      contextHint,
+      provider: "google-translate",
+    };
+  } catch (error) {
+    let translatedFallback = source;
+    const dictionary = wordLists[normalizeLanguage(targetLanguage)] || wordLists.english;
+    if (dictionary) {
+      let temp = source.toLowerCase();
+      for (const [from, to] of Object.entries(dictionary)) {
+        temp = temp.replace(
+          new RegExp(`\\b${from.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "gi"),
+          to,
+        );
+      }
+      translatedFallback = sentenceCase(temp);
+    }
+
+    return {
+      original: source,
+      translated: translatedFallback,
+      targetLanguage,
+      targetCode,
+      confidence: 0.5,
+      contextHint,
+      provider: "fallback-local",
+      note: "Google Translate API call failed; returned fallback preview.",
+    };
+  }
 };
 
 const tokenize = (value = "") =>

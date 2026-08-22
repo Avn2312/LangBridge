@@ -26,7 +26,7 @@ vi.mock("./learning.repository.js", () => ({
 
 const learningRepository = await import("./learning.repository.js");
 const { emitNewCorrection } = await import("./learning.emitters.js");
-const { correctMessage, createPartnerCorrection } = await import(
+const { correctMessage, createPartnerCorrection, translateMessage } = await import(
   "./learning.service.js"
 );
 
@@ -111,5 +111,26 @@ describe("learning service", () => {
       success: true,
       activityId: "activity-1",
     });
+  });
+
+  it("translates user text and logs learning activity", async () => {
+    learningRepository.createLearningActivity.mockResolvedValue({
+      _id: "activity-trans-1",
+    });
+
+    const result = await translateMessage({
+      user: {
+        _id: "user-1",
+        nativeLanguage: "spanish",
+      },
+      body: {
+        text: "Thank you",
+        targetLanguage: "spanish",
+      },
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.activityId).toBe("activity-trans-1");
+    expect(result.translation.translated.toLowerCase()).toContain("gracias");
   });
 });

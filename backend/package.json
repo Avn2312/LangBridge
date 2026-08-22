@@ -21,6 +21,7 @@
   "description": "Language exchange platform",
   "dependencies": {
     "@socket.io/redis-adapter": "^8.3.0",
+    "@vitalets/google-translate-api": "^9.2.1",
     "bcryptjs": "^3.0.2",
     "cloudinary": "^2.10.0",
     "connect-redis": "^9.0.0",
